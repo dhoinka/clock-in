@@ -1,0 +1,220 @@
+<div class="w-full">
+  <!-- Tabs -->
+  <div
+    class="grid grid-cols-4 h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full mb-6"
+  >
+    @for (tab of tabs; track tab.value) {
+      <button (click)="activeTab.set(tab.value)" [class]="tabClass(tab.value)">
+        {{ tab.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Account Tab -->
+  @if (activeTab() === 'account') {
+    <div class="space-y-6">
+      <!-- Account Info -->
+      <z-card zTitle="Account Information">
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <z-form-label for="username">Username</z-form-label>
+            <input
+              id="username"
+              [value]="user()?.username || ''"
+              disabled
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm opacity-50 cursor-not-allowed"
+            />
+          </div>
+          <div class="space-y-2">
+            <z-form-label for="name">Display Name</z-form-label>
+            <input
+              id="name"
+              [value]="user()?.name || ''"
+              readonly
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <div class="space-y-2">
+            <z-form-label for="email">Email</z-form-label>
+            <input
+              id="email"
+              type="email"
+              [value]="user()?.email || ''"
+              readonly
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+      </z-card>
+
+      <!-- Danger Zone -->
+      <z-card zTitle="Danger Zone">
+        <p class="text-sm text-muted-foreground mb-4">
+          Once you delete your entries, there is no going back. Please be
+          certain.
+        </p>
+        <button z-button zType="destructive" (click)="openDeleteAllConfirm()">
+          Delete Time Entries
+        </button>
+      </z-card>
+    </div>
+  }
+
+  <!-- Booking Tab -->
+  @if (activeTab() === 'booking') {
+    <div class="space-y-6">
+      <z-card zTitle="Booking Settings">
+        @if (settingsLoading()) {
+          <div class="flex items-center justify-center py-8">
+            <div
+              class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"
+            ></div>
+          </div>
+        } @else {
+          <div class="space-y-6">
+            @if (settingsError()) {
+              <div
+                class="text-sm text-destructive bg-destructive/10 p-3 rounded-md"
+              >
+                {{ settingsError() }}
+              </div>
+            }
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <z-form-label>Working hours</z-form-label>
+                <input
+                  [(ngModel)]="settings.workingHours"
+                  placeholder="8h"
+                  [disabled]="settingsSaving()"
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+                />
+              </div>
+              <div>
+                <z-form-label>Break time</z-form-label>
+                <input
+                  [(ngModel)]="settings.breakTime"
+                  placeholder="30m"
+                  [disabled]="settingsSaving()"
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+                />
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <z-form-label>Working days</z-form-label>
+              <div class="flex gap-2 mt-2">
+                @for (day of days; track day; let i = $index) {
+                  <button
+                    (click)="toggleDay(i)"
+                    [class]="dayBtnClass(i)"
+                    [disabled]="settingsSaving()"
+                  >
+                    {{ day }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="flex gap-2 pt-4">
+              <button
+                z-button
+                (click)="saveSettings()"
+                [disabled]="!isSettingsDirty() || settingsSaving()"
+              >
+                {{ settingsSaving() ? 'Saving...' : 'Save' }}
+              </button>
+              <button
+                z-button
+                zType="outline"
+                (click)="resetSettings()"
+                [disabled]="!isSettingsDirty() || settingsSaving()"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        }
+      </z-card>
+    </div>
+  }
+
+  <!-- Security Tab -->
+  @if (activeTab() === 'security') {
+    <div class="space-y-6">
+      <z-card zTitle="Change Password">
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <z-form-label for="currentPassword">Current Password</z-form-label>
+            <input
+              id="currentPassword"
+              type="password"
+              placeholder="Enter current password"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <div class="space-y-2">
+            <z-form-label for="newPassword">New Password</z-form-label>
+            <input
+              id="newPassword"
+              type="password"
+              placeholder="Enter new password"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <div class="space-y-2">
+            <z-form-label for="confirmPassword"
+              >Confirm New Password</z-form-label
+            >
+            <input
+              id="confirmPassword"
+              type="password"
+              placeholder="Confirm new password"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <button z-button>Update Password</button>
+        </div>
+      </z-card>
+    </div>
+  }
+
+  <!-- Preferences Tab -->
+  @if (activeTab() === 'preferences') {
+    <div class="space-y-6">
+      <z-card zTitle="Application Preferences">
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <z-form-label>Theme</z-form-label>
+            <p class="text-sm text-muted-foreground">
+              Choose how the application looks and feels.
+            </p>
+            <div class="flex gap-2">
+              <button
+                z-button
+                [zType]="theme() === 'light' ? 'default' : 'outline'"
+                (click)="setTheme('light')"
+              >
+                Light
+              </button>
+              <button
+                z-button
+                [zType]="theme() === 'dark' ? 'default' : 'outline'"
+                (click)="setTheme('dark')"
+              >
+                Dark
+              </button>
+              <button
+                z-button
+                [zType]="theme() === 'system' ? 'default' : 'outline'"
+                (click)="setTheme('system')"
+              >
+                System
+              </button>
+            </div>
+          </div>
+        </div>
+      </z-card>
+    </div>
+  }
+</div>

@@ -1,0 +1,12 @@
+spring:
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.xml
+  jpa:
+    open-in-view: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+app:
+  jwt-secret: ${JWT_SECRET:development-only-dummy-jwt-secret-change-before-deployment-0123456789abcdef}

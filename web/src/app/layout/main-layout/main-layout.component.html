@@ -1,0 +1,55 @@
+<div class="flex h-screen">
+  <!-- Desktop Sidebar -->
+  @if (!isMobile()) {
+    <div class="border-r bg-card">
+      <app-navigation />
+    </div>
+  }
+
+  <!-- Mobile Navigation -->
+  @if (isMobile()) {
+    <!-- Mobile Menu Button -->
+    <button
+      (click)="isMobileMenuOpen.set(true)"
+      class="fixed top-4 left-4 z-50 md:hidden inline-flex items-center justify-center h-10 w-10 rounded-md hover:bg-accent"
+      aria-label="Open navigation menu"
+    >
+      <ng-icon name="lucideMenu" class="h-6 w-6" />
+    </button>
+
+    <!-- Mobile Sidebar Overlay -->
+    @if (isMobileMenuOpen()) {
+      <!-- eslint-disable-next-line -->
+      <div
+        class="fixed inset-0 z-40 bg-black/50"
+        (click)="isMobileMenuOpen.set(false)"
+      ></div>
+      <div
+        class="fixed left-0 top-0 z-50 h-full w-72 bg-card border-r shadow-lg"
+      >
+        <app-navigation (linkClick)="isMobileMenuOpen.set(false)" />
+      </div>
+    }
+  }
+
+  <!-- Main Content -->
+  <div
+    class="flex-1 overflow-auto min-h-screen h-full flex flex-col justify-between"
+  >
+    <main [class]="'p-3 sm:p-6 ' + (isMobile() ? 'pt-12' : '')">
+      <router-outlet />
+    </main>
+    <div class="flex justify-center mb-2">
+      <div
+        class="text-muted-foreground pt-1 flex gap-1 items-center text-xs sm:text-sm"
+      >
+        <div>made with</div>
+        <ng-icon
+          name="lucideHeart"
+          class="h-3 w-3 sm:h-4 sm:w-4 text-red-600 fill-current"
+        />
+        <div>in Thür</div>
+      </div>
+    </div>
+  </div>
+</div>

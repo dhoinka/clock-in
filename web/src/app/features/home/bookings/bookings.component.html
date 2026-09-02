@@ -1,0 +1,84 @@
+<div class="flex justify-center mt-3 mb-10">
+  <div class="w-full lg:w-2/3">
+    <div class="flex justify-between mb-4">
+      <z-select
+        class="w-48"
+        zPlaceholder="Select a month"
+        [(zValue)]="selectedMonth"
+        (zSelectionChange)="loadBookings($event.toString())"
+      >
+        @for (month of months(); track month.value) {
+          <z-select-item [zValue]="month.value">{{
+            month.viewValue
+          }}</z-select-item>
+        }
+      </z-select>
+    </div>
+
+    <div class="rounded-md border">
+      <table z-table>
+        <caption z-table-caption>
+          Booking entries for
+          {{
+            selectedMonthLabel()
+          }}
+        </caption>
+        <thead z-table-header>
+          <tr z-table-row>
+            <th z-table-head>Date</th>
+            <th z-table-head>Start</th>
+            <th z-table-head>End</th>
+            <th z-table-head>Gross</th>
+            <th z-table-head>Balance</th>
+            <th z-table-head class="text-right">Options</th>
+          </tr>
+        </thead>
+        <tbody z-table-body>
+          @if (loading()) {
+            @for (i of skeletonRows; track i) {
+              <tr z-table-row>
+                <td z-table-cell><z-skeleton class="h-4 w-32" /></td>
+                <td z-table-cell><z-skeleton class="h-4 w-12" /></td>
+                <td z-table-cell><z-skeleton class="h-4 w-12" /></td>
+                <td z-table-cell><z-skeleton class="h-4 w-16" /></td>
+                <td z-table-cell><z-skeleton class="h-4 w-16" /></td>
+                <td z-table-cell class="text-right">
+                  <z-skeleton class="h-8 w-8 ml-auto" />
+                </td>
+              </tr>
+            }
+          } @else {
+            @for (
+              element of bookingsMonth();
+              track element.date.toISOString()
+            ) {
+              <tr z-table-row [class]="getRowClass(element)">
+                <td z-table-cell>
+                  {{ format(element.date, 'EEE dd.MM.yyyy') }}
+                </td>
+                <td z-table-cell>
+                  {{ getStartTime(element) }}
+                </td>
+                <td z-table-cell>
+                  {{ getEndTime(element) }}
+                </td>
+                <td z-table-cell>{{ element.gross }}</td>
+                <td z-table-cell>{{ element.balance }}</td>
+                <td z-table-cell class="text-right">
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    (click)="openEditDialog(element)"
+                  >
+                    <ng-icon name="lucideEllipsis" />
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

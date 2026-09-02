@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="1.0.0" author="dhoinka">
+        <createTable tableName="users">
+            <column name="id" type="varchar(50)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="email" type="varchar(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="username" type="varchar(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="account_id" type="bigint"/>
+
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="active" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="account">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="password" type="varchar(255)"/>
+        </createTable>
+
+        <addUniqueConstraint tableName="users" columnNames="account_id" constraintName="uq_users_account_id"/>
+
+        <addForeignKeyConstraint baseTableName="users" baseColumnNames="account_id" constraintName="fk_users_account"
+                                 referencedTableName="account"
+                                 referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+
+        <createTable tableName="role">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="varchar(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="user_role">
+            <column name="user_id" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addPrimaryKey tableName="user_role" columnNames="user_id, role_id" constraintName="pk_user_role"/>
+
+        <addForeignKeyConstraint baseTableName="user_role" baseColumnNames="user_id" constraintName="fk_user_role"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="user_role" baseColumnNames="role_id" constraintName="fk_role_user"
+                                 referencedTableName="role"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <createIndex tableName="user_role" indexName="idx_user_role_role_id">
+            <column name="role_id"/>
+        </createIndex>
+
+
+        <comment>Inserts</comment>
+
+        <loadData tableName="role" file="classpath:/db/user/03-user-roles.csv"/>
+
+    </changeSet>
+    <changeSet id="2" author="daniel">
+        <createTable tableName="time_entry">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workday_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="start_ts" type="timestamp"/>
+            <column name="end_ts" type="timestamp"/>
+            <column name="duration" type="varchar(255)"/>
+
+            <column name="type" type="varchar(32)" defaultValue="STANDARD">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="workday">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="date" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="gross" type="bigint"/>
+            <column name="balance" type="bigint"/>
+            <column name="user_id" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="workday" columnNames="user_id, date" constraintName="uq_workday_user_date"/>
+        <addForeignKeyConstraint baseTableName="workday" baseColumnNames="user_id" constraintName="fk_days_users"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+
+        <addForeignKeyConstraint baseTableName="time_entry"
+                                 baseColumnNames="workday_id"
+                                 constraintName="fk_time_entry_day"
+                                 referencedTableName="workday"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="time_entry"
+                                 baseColumnNames="user_id"
+                                 constraintName="fk_time_entry_user"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <createIndex tableName="time_entry" indexName="idx_time_entry_workday_start">
+            <column name="workday_id"/>
+            <column name="start_ts"/>
+        </createIndex>
+
+        <createIndex tableName="time_entry" indexName="idx_time_entry_user_type">
+            <column name="user_id"/>
+            <column name="type"/>
+        </createIndex>
+
+        <createTable tableName="snapshot">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="workday_id" type="bigint"/>
+
+        </createTable>
+
+        <addUniqueConstraint tableName="snapshot" columnNames="user_id" constraintName="uq_snapshot_user"/>
+
+        <addForeignKeyConstraint baseTableName="snapshot" baseColumnNames="user_id"
+                                 constraintName="fk_snapshot_user"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint baseTableName="snapshot" baseColumnNames="workday_id"
+                                 constraintName="fk_snapshot_workday"
+                                 referencedTableName="workday"
+                                 referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+
+        <createTable tableName="setting">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="working_hours" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="break_time" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="working_days" type="bigint" defaultValueNumeric="31">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="setting" columnNames="user_id" constraintName="uq_setting_user"/>
+
+        <addForeignKeyConstraint baseTableName="setting" baseColumnNames="user_id"
+                                 constraintName="fk_setting_user"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE"/>
+
+        <createTable tableName="event">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="title" type="varchar(255)"/>
+            <column name="all_day" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="varchar(100)"/>
+            <column name="status" type="varchar(20)"/>
+            <column name="user_id" type="varchar(50)"/>
+
+            <column name="start_date" type="date"/>
+            <column name="end_date" type="date"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="event" baseColumnNames="user_id" constraintName="fk_event_users"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"/>
+
+        <createIndex tableName="event" indexName="idx_event_user_start_end">
+            <column name="user_id"/>
+            <column name="start_date"/>
+            <column name="end_date"/>
+        </createIndex>
+
+    </changeSet>
+</databaseChangeLog>

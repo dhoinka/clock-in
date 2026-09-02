@@ -1,0 +1,80 @@
+<div class="container mx-auto p-4">
+  <!-- Tabs -->
+  <div class="w-full">
+    <div
+      class="grid grid-cols-2 h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full mb-6"
+    >
+      <button
+        (click)="activeTab.set('corrections')"
+        [class]="tabClass('corrections')"
+      >
+        Corrections
+      </button>
+      <button (click)="activeTab.set('stats')" [class]="tabClass('stats')">
+        Some useless stats
+      </button>
+    </div>
+
+    @if (activeTab() === 'corrections') {
+      <div class="mt-6">
+        <div class="flex justify-center">
+          <div class="w-full lg:w-1/3">
+            <h1 class="text-2xl font-bold mb-4">Booking Corrections</h1>
+            @if (isLoading()) {
+              <p class="text-muted-foreground">Loading...</p>
+            } @else if (entries().length === 0) {
+              <p class="text-muted-foreground">Nothing to show here</p>
+            } @else {
+              <div class="space-y-3">
+                @for (booking of entries(); track booking.id) {
+                  <z-card class="p-4">
+                    <div class="flex items-center justify-between">
+                      <div class="flex-1">
+                        <div class="font-medium">
+                          {{
+                            booking.date
+                              ? format(booking.date, 'EEEEEE dd.MM.yyyy')
+                              : ''
+                          }}
+                        </div>
+                        <div class="text-sm text-muted-foreground">
+                          {{ booking.duration }}
+                        </div>
+                      </div>
+                      <button
+                        z-button
+                        zType="destructive"
+                        zSize="icon"
+                        (click)="openDeleteConfirm(booking)"
+                      >
+                        <ng-icon name="lucideTrash2" />
+                      </button>
+                    </div>
+                  </z-card>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (activeTab() === 'stats') {
+      <div class="mt-6">
+        <div class="flex justify-center">
+          <div class="w-full lg:w-1/3">
+            <h1 class="text-2xl font-bold mb-4">Useful stats</h1>
+            @if (stats()) {
+              <h2 class="text-lg">
+                You usually arrive at {{ stats()!.avgStart }} and leave at
+                {{ stats()!.avgEnd }}.
+              </h2>
+            } @else {
+              <p class="text-muted-foreground">Nothing useful to see here</p>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

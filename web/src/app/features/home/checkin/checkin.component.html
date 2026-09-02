@@ -1,0 +1,44 @@
+<div class="w-full">
+  <div class="flex justify-center">
+    <div class="mt-28 sm:mt-10">
+      <div class="flex flex-col items-center">
+        <h1 class="text-2xl sm:text-3xl font-light text-center mb-8">
+          Good <span class="font-medium">{{ greeting() }}</span>
+          &nbsp;
+          <span id="username" class="font-medium">{{ username() }}</span>
+        </h1>
+
+        <div class="mb-3 flex justify-between items-center gap-8">
+          @if (model().checkedIn) {
+            <div class="flex flex-col justify-center">
+              <span class="text-lg text-muted-foreground">
+                You're working for
+                <strong class="text-foreground">{{ model().gross }}</strong>
+              </span>
+            </div>
+          }
+
+          <button
+            z-button
+            (click)="handleClick()"
+            [disabled]="isLoading()"
+            zShape="circle"
+            class="h-14 w-14 shadow-lg hover:shadow-xl"
+            data-cy="checkin"
+          >
+            @if (model().checkedIn) {
+              <ng-icon name="lucideSquare" />
+            } @else {
+              <ng-icon name="lucidePlay" />
+            }
+          </button>
+        </div>
+
+        <!-- Display current time -->
+        <div class="text-sm text-muted-foreground mt-4">
+          {{ formattedTime() }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

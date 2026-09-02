@@ -1,0 +1,68 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "dependencyDashboard": true,
+  "packageRules": [
+    {
+      "groupName": "web patch dependencies",
+      "description": "Group patch updates for web dependencies",
+      "matchFileNames": [
+        "web/**"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "automerge": false,
+      "labels": [
+        "web",
+        "renovate"
+      ]
+    },
+    {
+      "groupName": "web minor/major dependencies",
+      "description": "Group minor and major updates for web dependencies",
+      "matchFileNames": [
+        "web/**"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "major"
+      ],
+      "labels": [
+        "web",
+        "renovate"
+      ]
+    },
+    {
+      "groupName": "api patch dependencies",
+      "description": "Group patch updates for api dependencies",
+      "matchFileNames": [
+        "api/**"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "labels": [
+        "api",
+        "renovate"
+      ]
+    },
+    {
+      "groupName": "api minor/major dependencies",
+      "description": "Group minor and major updates for api dependencies",
+      "matchFileNames": [
+        "api/**"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "major"
+      ],
+      "labels": [
+        "api",
+        "renovate"
+      ]
+    }
+  ]
+}

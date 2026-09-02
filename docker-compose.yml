@@ -1,0 +1,50 @@
+services:
+  traefik:
+    image: "traefik:v3.7"
+    ports:
+      - "3000:80"
+    command:
+      - "--log.level=INFO"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--accesslog=true"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  web:
+    image: "ghcr.io/dhoinka/clock-in/web"
+    expose:
+      - "80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=PathPrefix(`/`)"
+
+  api:
+    image: "ghcr.io/dhoinka/clock-in/api"
+    expose:
+      - "8080"
+    depends_on:
+      - postgres
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.strip-api.stripprefix.prefixes=/api"
+      - "traefik.http.routers.api.middlewares=strip-api"
+      - "traefik.http.routers.api.rule=PathPrefix(`/api`)"
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD:-local-postgres-password-change-before-deployment}"
+      APP_JWT_SECRET: "${APP_JWT_SECRET:-local-only-dummy-jwt-secret-change-before-deployment-0123456789abcdef}"
+
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-local-postgres-password-change-before-deployment}"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+
+volumes:
+  postgres-data:

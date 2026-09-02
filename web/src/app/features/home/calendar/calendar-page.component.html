@@ -1,0 +1,60 @@
+<div class="p-2 sm:p-4">
+  <!-- Custom Header -->
+  <div
+    class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6"
+  >
+    <div class="flex items-center gap-2 order-2 sm:order-1">
+      <button
+        z-button
+        zType="outline"
+        zSize="icon"
+        (click)="navigate('prev')"
+        [disabled]="isLoading()"
+      >
+        <ng-icon name="lucideChevronLeft" class="h-4 w-4" />
+      </button>
+      <button
+        z-button
+        zType="outline"
+        zSize="icon"
+        (click)="navigate('next')"
+        [disabled]="isLoading()"
+      >
+        <ng-icon name="lucideChevronRight" class="h-4 w-4" />
+      </button>
+      <button
+        z-button
+        zType="outline"
+        (click)="navigate('today')"
+        [disabled]="isLoading()"
+      >
+        Today
+      </button>
+    </div>
+
+    <h2
+      class="text-lg sm:text-xl font-semibold text-center sm:text-left order-1 sm:order-2"
+    >
+      {{ currentMonthLabel() }}
+    </h2>
+
+    <div class="order-3">
+      <button z-button (click)="openAddEvent()" [disabled]="isLoading()">
+        <ng-icon name="lucidePlus" class="h-4 w-4" />
+        <span class="hidden sm:inline">Add Event</span>
+        <span class="sm:hidden">Add</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- FullCalendar -->
+  <div>
+    @if (isLoading()) {
+      <div class="flex items-center justify-center h-96">
+        <div class="text-muted-foreground">Loading calendar...</div>
+      </div>
+    } @else {
+      <full-calendar [options]="calendarOptions()" #calendar />
+    }
+  </div>
+</div>

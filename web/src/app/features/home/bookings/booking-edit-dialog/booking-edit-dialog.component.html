@@ -1,0 +1,100 @@
+<p class="text-muted-foreground text-sm">
+  Edit time entries for {{ format(data.row.date, 'EEE dd.MM.yyyy') }}
+</p>
+
+@if (overlapError()) {
+  <div class="flex items-center gap-2 text-sm text-red-600 mb-2">
+    <ng-icon name="lucideTriangleAlert" class="h-4 w-4" />
+    {{ overlapError() }}
+  </div>
+}
+
+<div class="space-y-4 mt-4">
+  @for (entry of entryForms(); track $index; let i = $index) {
+    @if (entry.type === 'standard') {
+      <div
+        class="grid gap-4 items-end p-4 rounded-lg border-2 border-gray-200 hover:border-gray-300 grid-cols-4"
+      >
+        <div class="relative">
+          <z-form-label>Type</z-form-label>
+          <select
+            [(ngModel)]="entryForms()[i].type"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+          >
+            <option value="standard">Standard</option>
+            <option value="correction">Correction</option>
+          </select>
+        </div>
+        <div>
+          <z-form-label>Start</z-form-label>
+          <input
+            type="time"
+            [(ngModel)]="entryForms()[i].start"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+          />
+        </div>
+        <div>
+          <z-form-label>End</z-form-label>
+          <input
+            type="time"
+            [(ngModel)]="entryForms()[i].end"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+          />
+        </div>
+        <div class="flex justify-end pb-3">
+          <button z-button zSize="icon" (click)="removeEntry(i)">
+            <ng-icon name="lucideX" />
+          </button>
+        </div>
+      </div>
+    } @else {
+      <div
+        class="grid gap-4 items-end p-4 rounded-lg border-2 border-gray-200 hover:border-gray-300 grid-cols-3"
+      >
+        <div class="relative">
+          <z-form-label>Type</z-form-label>
+          <select
+            [(ngModel)]="entryForms()[i].type"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+          >
+            <option value="standard">Standard</option>
+            <option value="correction">Correction</option>
+          </select>
+        </div>
+        <div>
+          <z-form-label>Duration</z-form-label>
+          <input
+            [(ngModel)]="entryForms()[i].duration"
+            placeholder="e.g. 30m, 1h"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+          />
+        </div>
+        <div class="flex justify-end pb-3">
+          <button z-button zSize="icon" (click)="removeEntry(i)">
+            <ng-icon name="lucideX" />
+          </button>
+        </div>
+      </div>
+    }
+  }
+</div>
+
+<div class="flex gap-2 mt-4">
+  <button z-button (click)="addEntry('standard')">
+    <ng-icon name="lucidePlus" class="h-4 w-4" />
+    Add Entry
+  </button>
+  @if (!hasCorrectionEntry()) {
+    <button z-button (click)="addEntry('correction')">
+      <ng-icon name="lucidePlus" class="h-4 w-4" />
+      Add Correction
+    </button>
+  }
+</div>
+
+<div
+  class="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2"
+>
+  <button z-button zType="outline" (click)="closeDialog()">Cancel</button>
+  <button z-button (click)="saveEntries()">Save Changes</button>
+</div>

@@ -1,0 +1,38 @@
+<p class="text-muted-foreground text-sm mb-4">{{ formattedDate }}</p>
+
+<div class="space-y-4">
+  <div class="space-y-2">
+    <z-form-label for="title">Title</z-form-label>
+    <input
+      id="title"
+      type="text"
+      [ngModel]="title()"
+      (ngModelChange)="title.set($event)"
+      class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+      placeholder="Event title"
+    />
+  </div>
+  <div class="space-y-2">
+    <z-form-label for="type">Type</z-form-label>
+    <select
+      id="type"
+      [ngModel]="type()"
+      (ngModelChange)="type.set($event)"
+      class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+    >
+      <option value="none">None</option>
+      <option value="vacation">Vacation</option>
+      <option value="sick">Sick</option>
+    </select>
+  </div>
+</div>
+
+<div class="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+  @if (data.event.id) {
+    <button z-button zType="destructive" (click)="delete()">Delete</button>
+  }
+  <div class="flex flex-col-reverse gap-2 sm:flex-row sm:gap-0 sm:space-x-2">
+    <button z-button zType="outline" (click)="close()">Cancel</button>
+    <button z-button (click)="save()">Save</button>
+  </div>
+</div>
