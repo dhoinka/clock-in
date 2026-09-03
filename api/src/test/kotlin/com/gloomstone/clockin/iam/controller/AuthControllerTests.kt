@@ -154,7 +154,7 @@ class AuthControllerTests {
 
         val refreshRequest = RefreshRequest(loginResponse.refreshToken)
 
-        mvc.perform(
+        val refreshResult = mvc.perform(
             post("/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(refreshRequest))
@@ -163,6 +163,26 @@ class AuthControllerTests {
             .andExpect(jsonPath("$.accessToken").exists())
             .andExpect(jsonPath("$.refreshToken").exists())
             .andExpect(jsonPath("$.user.email").value(user.email))
+            .andReturn()
+
+        val rotatedCredentials = objectMapper.readValue(
+            refreshResult.response.contentAsString,
+            Credentials::class.java,
+        )
+
+        mvc.perform(
+            post("/auth/refresh")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(refreshRequest))
+        )
+            .andExpect(status().isUnauthorized)
+
+        mvc.perform(
+            post("/auth/refresh")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(RefreshRequest(rotatedCredentials.refreshToken)))
+        )
+            .andExpect(status().isUnauthorized)
     }
 
     @Test
