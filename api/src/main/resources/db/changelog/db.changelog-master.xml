@@ -227,4 +227,37 @@
         </createIndex>
 
     </changeSet>
+    <changeSet id="3" author="codex">
+        <createTable tableName="refresh_session">
+            <column name="id" type="varchar(36)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="token_jti" type="varchar(36)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="token_hash" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="revoked_at" type="timestamp"/>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="refresh_session" baseColumnNames="user_id"
+                                 constraintName="fk_refresh_session_user" referencedTableName="users"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="refresh_session" indexName="idx_refresh_session_updated_at">
+            <column name="updated_at"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>

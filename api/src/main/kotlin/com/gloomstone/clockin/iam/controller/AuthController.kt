@@ -36,7 +36,7 @@ class AuthController(
 
     @PostMapping("/reset-password")
     @PreAuthorize("hasAuthority('admin')")
-    fun resetPassword(@RequestBody request: PasswordRequestReset?, authentication: Authentication) {
+    fun resetPassword(@Valid @RequestBody request: PasswordRequestReset?, authentication: Authentication) {
         request ?: throw BadRequestException()
         if (authentication.authorities.contains(SimpleGrantedAuthority("admin"))) {
             authService.resetPassword(request, true)

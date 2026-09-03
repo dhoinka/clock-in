@@ -16,6 +16,7 @@ import com.gloomstone.clockin.shared.testutil.token
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.doNothing
+import org.mockito.Mockito.verifyNoInteractions
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
@@ -76,6 +77,26 @@ class UserMgmtControllerTests {
                 .contentType(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `reset password rejects empty and weak passwords`() {
+        val invalidRequests = listOf(
+            PasswordRequestReset("alice", "", ""),
+            PasswordRequestReset("alice", "short", "short"),
+        )
+
+        invalidRequests.forEach { request ->
+            mvc.perform(
+                post("/mgmt/users/user-alice/reset-password")
+                    .with(token())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(request))
+            )
+                .andExpect(status().isBadRequest)
+        }
+
+        verifyNoInteractions(authService)
     }
 
     @Test

@@ -23,6 +23,7 @@ class AuthService(
     private val passwordEncoder: PasswordEncoder,
     private val userMapper: UserMapper,
     private val jwtUtil: JwtUtil,
+    private val refreshSessionService: RefreshSessionService,
 ) {
 
     private val logger = LoggerFactory.getLogger(AuthService::class.java)
@@ -51,7 +52,7 @@ class AuthService(
                         "roles" to user.roles.map { it.name }.toTypedArray()
                     )
                 )
-                val refreshToken = jwtUtil.generateRefreshToken(user.username)
+                val refreshToken = refreshSessionService.create(user.id, user.username)
 
                 this.userService.update(user)
 
@@ -70,9 +71,11 @@ class AuthService(
 
     @Transactional
     fun refresh(request: RefreshRequest): Credentials {
-        val username = jwtUtil.verifyRefreshToken(request.refreshToken ?: throw BadRequestException()).name
+        val rawRefreshToken = request.refreshToken ?: throw BadRequestException()
+        val rotation = refreshSessionService.rotate(rawRefreshToken)
+            ?: throw AuthenticationException()
 
-        val user = this.userService.findByIdentity(username)
+        val user = this.userService.findByIdentity(rotation.userId)
             ?.takeIf { it.active }
             ?: throw AuthenticationException()
 
@@ -84,11 +87,9 @@ class AuthService(
                 "roles" to user.roles.map { it.name }
             ))
 
-        val refreshToken = jwtUtil.generateRefreshToken(user.username)
-
         this.userService.update(user)
         logger.info("User session refreshed, user=\"{}\"", user.username)
-        return Credentials(userMapper.toDto(user), accessToken, refreshToken)
+        return Credentials(userMapper.toDto(user), accessToken, rotation.refreshToken)
     }
 
     fun resetPassword(request: PasswordRequestReset, isAdmin: Boolean = false) {

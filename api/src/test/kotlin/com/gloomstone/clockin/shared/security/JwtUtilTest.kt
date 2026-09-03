@@ -46,17 +46,18 @@ class JwtUtilTest {
 
     @Test
     fun verifyRefreshToken() {
-        val token = jwtUtil.generateRefreshToken("testUser")
-        val authentication = jwtUtil.verifyRefreshToken(token)
+        val token = jwtUtil.generateRefreshToken("testUser", "session-id")
+        val claims = jwtUtil.verifyRefreshToken(token.value)
 
-        assertThat(authentication).isNotNull
-        assertThat(authentication.name).isEqualTo("testUser")
+        assertThat(claims.username).isEqualTo("testUser")
+        assertThat(claims.sessionId).isEqualTo("session-id")
+        assertThat(claims.jti).isEqualTo(token.jti)
     }
 
     @Test
     fun generateRefreshToken() {
-        val token = jwtUtil.generateRefreshToken("testUser")
-        assertThat(token).isNotNull
+        val token = jwtUtil.generateRefreshToken("testUser", "session-id")
+        assertThat(token.value).isNotBlank()
 
         val algorithm = Algorithm.HMAC512(secret)
         assertDoesNotThrow {
@@ -64,25 +65,7 @@ class JwtUtilTest {
                 .withIssuer(issuer)
                 .withAudience(issuer)
                 .build()
-                .verify(token)
-        }
-    }
-
-    @Test
-    fun refreshRefreshToken() {
-        val token = jwtUtil.generateRefreshToken("testUser")
-        val newToken = jwtUtil.refreshRefreshToken(token)
-
-        assertThat(newToken).isNotNull
-        assertThat(newToken).isNotEqualTo(token)
-
-        val algorithm = Algorithm.HMAC512(secret)
-        assertDoesNotThrow {
-            JWT.require(algorithm)
-                .withIssuer(issuer)
-                .withAudience(issuer)
-                .build()
-                .verify(newToken)
+                .verify(token.value)
         }
     }
 

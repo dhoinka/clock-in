@@ -18,6 +18,18 @@ import java.util.*
  */
 class JwtUtil(private val secret: String) {
 
+    data class GeneratedRefreshToken(
+        val value: String,
+        val jti: String,
+        val expiresAt: Instant,
+    )
+
+    data class RefreshTokenClaims(
+        val username: String,
+        val sessionId: String,
+        val jti: String,
+    )
+
     companion object {
         private val logger = LoggerFactory.getLogger(JwtUtil::class.java)
         private const val TOKEN_PREFIX = "Bearer"
@@ -30,11 +42,6 @@ class JwtUtil(private val secret: String) {
         private fun accessTokenBuilder(): JWTCreator.Builder {
             return tokenBuilder()
                 .withExpiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
-        }
-
-        private fun refreshTokenBuilder(): JWTCreator.Builder {
-            return tokenBuilder()
-                .withExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS))
         }
 
         private fun tokenBuilder(): JWTCreator.Builder {
@@ -85,7 +92,7 @@ class JwtUtil(private val secret: String) {
         }
     }
 
-    fun verifyRefreshToken(token: String): UsernamePasswordAuthenticationToken {
+    fun verifyRefreshToken(token: String): RefreshTokenClaims {
         val cleanToken = extractToken(token)
 
         val algorithm = Algorithm.HMAC512(secret)
@@ -97,34 +104,27 @@ class JwtUtil(private val secret: String) {
         val jwt = verifier.verify(cleanToken)
 
         val username = jwt.getClaim("username").asString()
+            ?: throw IllegalArgumentException("Username claim is missing")
+        val sessionId = jwt.getClaim("session_id").asString()
+            ?: throw IllegalArgumentException("Session claim is missing")
+        val jti = jwt.id ?: throw IllegalArgumentException("JWT ID is missing")
 
-        return UsernamePasswordAuthenticationToken(username, null)
+        return RefreshTokenClaims(username, sessionId, jti)
     }
 
-    fun generateRefreshToken(username: String): String {
+    fun generateRefreshToken(username: String, sessionId: String): GeneratedRefreshToken {
         val algorithm = Algorithm.HMAC512(secret)
+        val jti = UUID.randomUUID().toString()
+        val expiresAt = Instant.now().plus(7, ChronoUnit.DAYS)
 
-        return refreshTokenBuilder()
+        val value = tokenBuilder()
+            .withJWTId(jti)
+            .withExpiresAt(expiresAt)
             .withClaim(TOKEN_TYPE, REFRESH_TOKEN)
             .withClaim("username", username)
+            .withClaim("session_id", sessionId)
             .sign(algorithm)
-    }
-
-    fun refreshRefreshToken(token: String): String {
-        val algorithm = Algorithm.HMAC512(secret)
-        val verifier = JWT.require(algorithm)
-            .withIssuer(ISSUER)
-            .withAudience(ISSUER)
-            .withClaim(TOKEN_TYPE, REFRESH_TOKEN)
-            .build()
-        val jwt = verifier.verify(token)
-
-        val username = jwt.getClaim("username").asString()
-
-        return refreshTokenBuilder()
-            .withClaim(TOKEN_TYPE, REFRESH_TOKEN)
-            .withClaim("username", username)
-            .sign(algorithm)
+        return GeneratedRefreshToken(value, jti, expiresAt)
     }
 
     fun generateAccessToken(user: Map<String, *>): String {

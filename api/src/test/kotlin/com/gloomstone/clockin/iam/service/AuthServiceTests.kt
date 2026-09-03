@@ -23,12 +23,13 @@ class AuthServiceTests {
     private val passwordEncoder: PasswordEncoder = mock()
     private val userMapper: UserMapper = mock()
     private val jwtUtil = JwtUtil("test-secret")
+    private val refreshSessionService: RefreshSessionService = mock()
 
     private lateinit var authService: AuthService
 
     @BeforeEach
     fun setUp() {
-        authService = AuthService(userService, passwordEncoder, userMapper, jwtUtil)
+        authService = AuthService(userService, passwordEncoder, userMapper, jwtUtil, refreshSessionService)
     }
 
     @Test
@@ -38,6 +39,7 @@ class AuthServiceTests {
         whenever(userService.findByIdentity("alice")).thenReturn(user)
         whenever(passwordEncoder.matches("password123", "encoded-password")).thenReturn(true)
         whenever(userMapper.toDto(user)).thenReturn(dto)
+        whenever(refreshSessionService.create(user.id, user.username)).thenReturn("refresh-token")
 
         val credentials = authService.authenticate("ALICE", "password123")
 
@@ -91,10 +93,13 @@ class AuthServiceTests {
     fun `refresh accepts a valid refresh token for an active user`() {
         val user = user()
         val dto = userDto(user)
-        whenever(userService.findByIdentity("alice")).thenReturn(user)
+        whenever(userService.findByIdentity("alice-id")).thenReturn(user)
         whenever(userMapper.toDto(user)).thenReturn(dto)
+        val oldToken = jwtUtil.generateRefreshToken("alice", "session-id").value
+        whenever(refreshSessionService.rotate(oldToken))
+            .thenReturn(RefreshSessionService.Rotation(user.id, "new-refresh-token"))
 
-        val credentials = authService.refresh(RefreshRequest(jwtUtil.generateRefreshToken("alice")))
+        val credentials = authService.refresh(RefreshRequest(oldToken))
 
         assertThat(credentials.user).isEqualTo(dto)
         assertThat(credentials.accessToken).isNotBlank()
@@ -104,10 +109,13 @@ class AuthServiceTests {
 
     @Test
     fun `refresh rejects an inactive or missing user`() {
-        whenever(userService.findByIdentity("alice")).thenReturn(user(active = false))
+        val oldToken = jwtUtil.generateRefreshToken("alice", "session-id").value
+        whenever(refreshSessionService.rotate(oldToken))
+            .thenReturn(RefreshSessionService.Rotation("alice-id", "new-refresh-token"))
+        whenever(userService.findByIdentity("alice-id")).thenReturn(user(active = false))
 
         assertThatThrownBy {
-            authService.refresh(RefreshRequest(jwtUtil.generateRefreshToken("alice")))
+            authService.refresh(RefreshRequest(oldToken))
         }.isInstanceOf(AuthenticationException::class.java)
 
         verify(userService, never()).update(any())

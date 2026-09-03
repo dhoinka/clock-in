@@ -59,7 +59,7 @@ class UserMgmtController(
     @PostMapping("/{userId}/reset-password")
     fun resetPassword(
         @PathVariable userId: String,
-        @RequestBody request: PasswordRequestReset
+        @Valid @RequestBody request: PasswordRequestReset
     ) {
         authService.resetPassword(request, userId)
     }

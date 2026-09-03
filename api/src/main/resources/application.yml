@@ -9,4 +9,4 @@ management:
       exposure:
         include: health
 app:
-  jwt-secret: ${JWT_SECRET:development-only-dummy-jwt-secret-change-before-deployment-0123456789abcdef}
+  jwt-secret: ${APP_JWT_SECRET:development-only-dummy-jwt-secret-change-before-deployment-0123456789abcdef}
