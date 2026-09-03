@@ -1,288 +1,117 @@
 package com.gloomstone.clockin.worklog.service
 
 import com.gloomstone.clockin.iam.domain.User
-import com.gloomstone.clockin.iam.dto.CreateUserRequest
-import com.gloomstone.clockin.iam.service.UserService
-import com.gloomstone.clockin.worklog.dto.TimeEntryResponse
-import com.gloomstone.clockin.worklog.dto.UpdateWorkdayRequest
-import net.datafaker.Faker
+import com.gloomstone.clockin.worklog.domain.*
+import com.gloomstone.clockin.worklog.repository.DayRepository
+import com.gloomstone.clockin.worklog.repository.TimeEntryRepository
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.BDDMockito.given
-import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import java.time.*
 
-@SpringBootTest
 class WorklogServiceOvertimeTests {
+    private val user = User("alice@example.org", "alice", "Alice", id = "alice-id")
 
-    private val logger = LoggerFactory.getLogger(WorklogServiceOvertimeTests::class.java)
+    @Test
+    fun `calcBalance carries daily overtime across consecutive workdays`() {
+        val start = LocalDate.of(2021, 12, 1)
+        val days = (0..2).map { normalDay(start.plusDays(it.toLong())) }
+        val fixture = fixture(days, start.plusDays(2))
 
-    @Autowired
-    lateinit var worklogService: WorklogService
+        val result = fixture.service.calcBalance(user)
 
-    @Autowired
-    lateinit var userService: UserService
-
-    @MockitoBean
-    lateinit var holidayService: HolidayService
-
-    val faker = Faker()
-
-    @BeforeEach
-    fun beforeEach() {
-        given(holidayService.getHolidays(LocalDate.now())).willReturn(emptyList())
+        assertThat(result.map { it.balance })
+            .containsExactly(Duration.ofMinutes(30), Duration.ofHours(1), Duration.ofHours(1).plusMinutes(30))
     }
 
     @Test
-    fun test() {
-        var clock = Clock.fixed(
-            Instant.parse("2021-12-01T08:00:00Z"), ZoneId.systemDefault()
-        )
-        val username = faker.credentials().username()
-        val user = findOrCreate(username)
-
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        val test = worklogService.getEntries(LocalDate.now(clock), user.username)
-        logger.info("{}", test[0])
-        assertThat(test[0].balance).isEqualTo(Duration.ofMinutes(30))
-        logger.info("{}", test[1])
-        assertThat(test[1].balance).isEqualTo(Duration.ofHours(1))
-        logger.info("{}", test[2])
-        assertThat(test[2].balance).isEqualTo(Duration.ofHours(1).plusMinutes(30))
-    }
-
-    @Test
-    fun testWithUpdates() {
-        var clock = Clock.fixed(
-            Instant.parse("2021-12-01T08:00:00Z"), ZoneId.systemDefault()
-        )
-        val localDate = LocalDate.now(clock)
-
-        val username = faker.credentials().username()
-        val user = findOrCreate(username)
-
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        worklogService.update(getEntryUpdateRequest(localDate), user.username)
-        worklogService.update(getEntryUpdateRequest(localDate.plusDays(2)), user.username)
-        val test = worklogService.getEntries(LocalDate.now(clock), user.username)
-        logger.info("{}", test[0])
-        assertThat(test[0].balance).isEqualTo(Duration.ofMinutes(90))
-        logger.info("{}", test[1])
-        assertThat(test[1].balance).isEqualTo(Duration.ofHours(2))
-        logger.info("{}", test[2])
-        assertThat(test[2].balance).isEqualTo(Duration.ofHours(3).plusMinutes(30))
-    }
-
-    @Test
-    fun testWithHolidays() {
-        var clock = Clock.fixed(
-            Instant.parse("2022-01-01T08:00:00Z"), ZoneId.systemDefault()
-        )
-
-        val username = faker.credentials().username()
-        val user = findOrCreate(username)
-
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        logger.info(clock.instant().toString())
-        recordEntryNormalDay(clock, user)
-        val test = worklogService.getEntries(LocalDate.now(clock), user.username)
-        logger.info("{}", test[0])
-        assertThat(test[0].balance).isEqualTo(Duration.ofHours(8).plusMinutes(30))
-        logger.info("{}", test[1])
-        assertThat(test[1].balance).isEqualTo(Duration.ofHours(17))
-        logger.info("{}", test[2])
-        assertThat(test[2].balance).isEqualTo(Duration.ofHours(17).plusMinutes(30))
-    }
-
-    @Test
-    fun testWithCorrection() {
-        var clock = Clock.fixed(
-            Instant.parse("2021-12-01T09:00:00Z"), ZoneId.systemDefault()
-        )
-        val username = faker.credentials().username()
-        val user = findOrCreate(username)
-
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-        recordEntryNormalDay(clock, user)
-        clock = Clock.offset(clock, Duration.ofDays(1))
-
-        val request = getEntryRequestWithCorrection(LocalDate.of(2021, 12, 1))
-        worklogService.update(request, user.username)
-
-        worklogService.getBalance(user.username)
-        val test = worklogService.getEntries(LocalDate.now(clock), user.username)
-
-
-        for (day in test) {
-            logger.info("{}", day)
+    fun `calcBalance applies corrections after daily work time`() {
+        val start = LocalDate.of(2021, 12, 1)
+        val firstDay = normalDay(start).also { workday ->
+            workday.entries.add(TimeEntry("5h", EntryType.CORRECTION, workday, user))
         }
+        val fixture =
+            fixture(listOf(firstDay, normalDay(start.plusDays(1)), normalDay(start.plusDays(2))), start.plusDays(2))
 
-        assertThat(test[0].gross).isEqualTo(Duration.ofHours(8).plusMinutes(30))
-        assertThat(test[1].gross).isEqualTo(Duration.ofHours(8).plusMinutes(30))
-        assertThat(test[2].gross).isEqualTo(Duration.ofHours(8).plusMinutes(30))
+        val result = fixture.service.calcBalance(user)
 
-        assertThat(test[0].balance).isEqualTo(Duration.ofHours(5).plusMinutes(30))
-        assertThat(test[1].balance).isEqualTo(Duration.ofHours(6))
-        assertThat(test[2].balance).isEqualTo(Duration.ofHours(6).plusMinutes(30))
-    }
-
-    @Test
-    fun testSnapshot() {
-        val username = faker.credentials().username()
-        val user = findOrCreate(username)
-
-        for (i in 22..26) {
-            val clock = Clock.fixed(
-                Instant.parse("2021-11-${i}T09:00:00Z"), ZoneId.systemDefault()
+        assertThat(result.map { it.gross })
+            .containsExactly(
+                Duration.ofHours(8).plusMinutes(30),
+                Duration.ofHours(8).plusMinutes(30),
+                Duration.ofHours(8).plusMinutes(30)
             )
-            worklogService.setClock(clock)
-
-            val request = getEntryUpdateRequestHour(LocalDate.of(2021, 11, i))
-            worklogService.update(request, user.username)
-        }
-
-        for (i in 29..29) {
-            val clock = Clock.fixed(
-                Instant.parse("2021-11-${i}T09:00:00Z"), ZoneId.systemDefault()
+        assertThat(result.map { it.balance })
+            .containsExactly(
+                Duration.ofHours(5).plusMinutes(30),
+                Duration.ofHours(6),
+                Duration.ofHours(6).plusMinutes(30)
             )
-            worklogService.setClock(clock)
-
-            val request = getEntryUpdateRequestHour(LocalDate.of(2021, 11, i))
-            worklogService.update(request, user.username)
-        }
-
-        val clock = Clock.fixed(
-            Instant.parse("2021-12-01T09:00:00Z"), ZoneId.systemDefault()
-        )
-        worklogService.setClock(clock)
-
-        val requset = getEntryUpdateRequestHour(LocalDate.of(2021, 12, 1))
-        worklogService.update(requset, user.username)
-
-        val test1 = worklogService.getEntries(LocalDate.of(2021, 11, 1), user.username)
-        for (day in test1) {
-            logger.info("{}", day)
-        }
-
-        val test2 = worklogService.getEntries(LocalDate.now(clock), user.username)
-        for (day in test2) {
-            logger.info("{}", day)
-        }
-
-        assertThat(test1[28].balance).isEqualTo(Duration.ofHours(6))
-        assertThat(test1[29].balance).isEqualTo(Duration.ofHours(-2))
-
-        assertThat(test2[0].balance).isEqualTo(Duration.ofHours(-1))
-
     }
 
     @Test
-    fun testALot() {
-        var clock = Clock.fixed(
-            Instant.parse("2021-12-01T09:00:00Z"), ZoneId.systemDefault()
-        )
-        val username = faker.credentials().username()
-        val user = findOrCreate(username)
+    fun `calcBalance does not subtract target hours on a holiday`() {
+        val start = LocalDate.of(2026, 9, 7)
+        val fixture = fixture(listOf(normalDay(start), normalDay(start.plusDays(1))), start.plusDays(1))
+        whenever(fixture.holidayService.getHolidays(any())).thenReturn(listOf(Holiday(start, "Holiday")))
 
-        for (i in 0..30) {
-            recordEntryNormalDay(clock, user)
-            clock = Clock.offset(clock, Duration.ofDays(1))
-        }
-        val test = worklogService.getEntries(LocalDate.now(clock), user.username)
-        for (day in test) {
-            logger.info("{}", day)
-        }
+        val result = fixture.service.calcBalance(user)
+
+        assertThat(result.map { it.isWorkday }).containsExactly(false, true)
+        assertThat(result.map { it.balance }).containsExactly(Duration.ofHours(8).plusMinutes(30), Duration.ofHours(9))
     }
 
-    private fun recordEntryNormalDay(clock: Clock, user: User) {
-        var anClock: Clock = clock
-        worklogService.setClock(anClock)
-
-        worklogService.recordEntry(user.username)
-        anClock = Clock.offset(anClock, Duration.ofHours(9))
-        worklogService.setClock(anClock)
-        worklogService.recordEntry(user.username)
-    }
-
-    private fun getEntryUpdateRequestHour(localDate: LocalDate): UpdateWorkdayRequest {
-        val l1 = LocalDateTime.of(localDate, LocalTime.of(8, 0))
-        val l2 = LocalDateTime.of(localDate, LocalTime.of(17, 30))
-        return UpdateWorkdayRequest(localDate, listOf(TimeEntryResponse("standard", l1, l2)))
-    }
-
-    private fun getEntryUpdateRequest(localDate: LocalDate): UpdateWorkdayRequest {
-        val l1 = LocalDateTime.of(localDate, LocalTime.of(8, 0))
-        val l2 = LocalDateTime.of(localDate, LocalTime.of(18, 0))
-        return UpdateWorkdayRequest(localDate, listOf(TimeEntryResponse("standard", l1, l2)))
-    }
-
-    private fun getEntryRequestWithCorrection(localDate: LocalDate): UpdateWorkdayRequest {
-        val l1 = LocalDateTime.of(localDate, LocalTime.of(9, 0))
-        val l2 = LocalDateTime.of(localDate, LocalTime.of(18, 0))
-        return UpdateWorkdayRequest(
-            localDate,
-            listOf(
-                TimeEntryResponse("standard", l1, l2),
-                TimeEntryResponse("correction", duration = "5h")
+    private fun normalDay(date: LocalDate): Workday {
+        val workday = Workday(date, user)
+        workday.entries.add(
+            TimeEntry(
+                LocalDateTime.of(date, LocalTime.of(8, 0)),
+                LocalDateTime.of(date, LocalTime.of(17, 0)),
+                workday,
+                user,
             )
         )
+        return workday
     }
 
-    fun findOrCreate(username: String): User {
-        val password = faker.credentials().password()
-        return userService.findByIdentity(username) ?: userService.create(
-            CreateUserRequest(
-                username,
-                faker.internet().emailAddress(),
-                faker.name().fullName(),
-                password = password,
-                passwordRepeat = password
+    private fun fixture(days: List<Workday>, today: LocalDate): Fixture {
+        val dayRepository = mock<DayRepository>()
+        val timeEntryRepository = mock<TimeEntryRepository>()
+        val snapshotService = mock<SnapshotService>()
+        val settingService = mock<SettingService>()
+        val eventService = mock<EventService>()
+        val holidayService = mock<HolidayService>()
+        val userService = mock<com.gloomstone.clockin.iam.service.UserService>()
+        whenever(settingService.findByUser(user)).thenReturn(
+            Setting(
+                Duration.ofHours(8),
+                Duration.ofMinutes(30),
+                31,
+                user
             )
         )
+        whenever(snapshotService.findOrCreate(user)).thenReturn(Snapshot(user = user))
+        whenever(dayRepository.findAllByUserOrderByDate(user)).thenReturn(days)
+        whenever(dayRepository.saveAll<Workday>(any<List<Workday>>())).thenAnswer { it.getArgument<List<Workday>>(0) }
+        whenever(holidayService.getHolidays(any())).thenReturn(emptyList())
+        whenever(eventService.findByDateAndUsername(any(), any())).thenReturn(emptyList())
+
+        val service = WorklogService(
+            timeEntryRepository,
+            dayRepository,
+            snapshotService,
+            settingService,
+            eventService,
+            holidayService,
+            userService,
+        )
+        service.setClock(
+            Clock.fixed(today.atTime(12, 0).atZone(ZoneId.of("Europe/Berlin")).toInstant(), ZoneId.of("Europe/Berlin"))
+        )
+        return Fixture(service, holidayService)
     }
 
+    private data class Fixture(val service: WorklogService, val holidayService: HolidayService)
 }

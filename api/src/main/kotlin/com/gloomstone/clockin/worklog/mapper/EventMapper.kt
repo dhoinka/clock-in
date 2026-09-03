@@ -1,47 +1,28 @@
 package com.gloomstone.clockin.worklog.mapper
-
-
-import com.gloomstone.clockin.iam.domain.User
 import com.gloomstone.clockin.worklog.domain.Event
 import com.gloomstone.clockin.worklog.domain.EventStatus
 import com.gloomstone.clockin.worklog.domain.EventType
 import com.gloomstone.clockin.worklog.dto.EventDto
-import org.mapstruct.Mapper
-import org.mapstruct.Mapping
+import org.springframework.stereotype.Component
 
-@Mapper(componentModel = "spring")
-interface EventMapper {
-    @Mapping(target = "username", source = "user")
-    fun toDto(event: Event): EventDto
+@Component
+class EventMapper {
+    fun toDto(event: Event) = EventDto(
+        id = event.id,
+        title = event.title,
+        type = event.type?.value.orEmpty(),
+        start = event.start,
+        end = event.end,
+        status = event.status?.value.orEmpty(),
+        username = event.user?.username,
+    )
 
-    @Mapping(target = "user", ignore = true)
-    @Mapping(target = "allDay", ignore = true)
-    fun toEntity(request: EventDto): Event
-
-    fun mapToString(user: User): String {
-        return user.username
-    }
-
-    fun mapToEventType(value: String): EventType {
-        return EventType.fromValue(value)
-    }
-
-    fun mapToEventStatus(value: String): EventStatus {
-        return EventStatus.fromValue(value)
-    }
-
-
-    fun mapToString(type: EventType?): String {
-        if (type == null) {
-            return ""
-        }
-        return type.value
-    }
-
-    fun mapToString(status: EventStatus?): String {
-        if (status == null) {
-            return ""
-        }
-        return status.value
-    }
+    fun toEntity(request: EventDto) = Event(
+        id = request.id,
+        title = request.title,
+        type = request.type?.let(EventType::fromValue),
+        start = request.start,
+        end = request.end,
+        status = request.status?.let(EventStatus::fromValue),
+    )
 }

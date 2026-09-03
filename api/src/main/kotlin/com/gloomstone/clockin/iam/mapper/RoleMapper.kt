@@ -2,19 +2,14 @@ package com.gloomstone.clockin.iam.mapper
 
 import com.gloomstone.clockin.iam.controller.mgmt.dto.RoleDto
 import com.gloomstone.clockin.iam.domain.Role
-import org.mapstruct.Mapper
-import org.mapstruct.Mapping
-import org.mapstruct.MappingTarget
-import org.mapstruct.NullValuePropertyMappingStrategy
+import org.springframework.stereotype.Component
 
-@Mapper(
-    componentModel = "spring",
-    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
-)
-interface RoleMapper {
+@Component
+class RoleMapper {
+    fun toDto(role: Role) = RoleDto(id = role.id, name = role.name)
 
-    fun toDto(role: Role): RoleDto
-
-    @Mapping(target = "users", ignore = true)
-    fun toEntity(@MappingTarget role: Role, dto: RoleDto): Role
+    fun toEntity(role: Role, dto: RoleDto): Role = role.apply {
+        dto.id?.let { id = it }
+        dto.name?.let { name = it }
+    }
 }

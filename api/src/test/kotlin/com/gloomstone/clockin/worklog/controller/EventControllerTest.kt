@@ -1,170 +1,135 @@
 package com.gloomstone.clockin.worklog.controller
 
+import com.gloomstone.clockin.config.AppConfig
+import com.gloomstone.clockin.config.security.JwtResourceServerConfig
+import com.gloomstone.clockin.config.security.WebSecurityConfig
 import com.gloomstone.clockin.iam.domain.User
-import com.gloomstone.clockin.iam.dto.CreateUserRequest
-import com.gloomstone.clockin.iam.service.UserService
 import com.gloomstone.clockin.shared.testutil.token
 import com.gloomstone.clockin.worklog.domain.Event
 import com.gloomstone.clockin.worklog.domain.EventType
+import com.gloomstone.clockin.worklog.dto.EventDto
 import com.gloomstone.clockin.worklog.mapper.EventMapper
 import com.gloomstone.clockin.worklog.service.EventService
-import net.datafaker.Faker
 import org.junit.jupiter.api.Test
+import org.mockito.BDDMockito.given
+import org.mockito.Mockito.doNothing
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import tools.jackson.databind.json.JsonMapper
 import java.time.LocalDate
-import java.time.LocalDateTime
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebMvcTest(EventController::class)
+@Import(WebSecurityConfig::class, JwtResourceServerConfig::class, AppConfig::class)
 internal class EventControllerTest {
     @Autowired
-    private lateinit var mvc: MockMvc
+    lateinit var mvc: MockMvc
 
     @Autowired
-    private lateinit var mapper: JsonMapper
+    lateinit var mapper: JsonMapper
 
-    @Autowired
-    private lateinit var eventService: EventService
+    @MockitoBean
+    lateinit var eventService: EventService
 
-    @Autowired
-    private lateinit var eventMapper: EventMapper
-
-    @Autowired
-    private lateinit var userService: UserService
-
-    val faker = Faker()
+    @MockitoBean
+    lateinit var eventMapper: EventMapper
 
     @Test
-    fun `test GET`() {
-        val username = faker.credentials().username()
-        findOrCreate(username)
+    fun `GET returns events belonging to the authenticated user`() {
+        val event = event("alice", 1)
+        val dto = dto(event)
+        given(eventService.findAllByUsername("alice")).willReturn(listOf(event))
+        given(eventMapper.toDto(event)).willReturn(dto)
 
-        mvc.perform(get("/events").with(token(username)))
+        mvc.perform(get("/events").with(token("alice")))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$").isArray)
+            .andExpect(jsonPath("$[0].title").value("Vacation"))
+            .andExpect(jsonPath("$[0].username").value("alice"))
     }
 
     @Test
-    fun `test POST`() {
-        val username = faker.credentials().username()
-        val user = findOrCreate(username)
-        val event = eventMapper.toDto(
-            Event(
-                faker.lordOfTheRings().location(),
-                EventType.VACATION,
-                LocalDate.now(),
-                LocalDate.now().plusDays(1),
-                true,
-                user
-            )
+    fun `POST forwards an event using the authenticated username`() {
+        val request = EventDto(
+            title = "Vacation",
+            type = "vacation",
+            start = LocalDate.of(2026, 9, 1),
+            end = LocalDate.of(2026, 9, 2),
         )
+        val event = event("alice", 2)
+        given(eventService.create(request, "alice")).willReturn(event)
+        given(eventMapper.toDto(event)).willReturn(dto(event))
+
         mvc.perform(
             post("/events")
+                .with(token("alice"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(mapper.writeValueAsString(event))
-                .with(token(username))
+                .content(mapper.writeValueAsString(request))
         )
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$").isMap)
-            .andExpect(jsonPath("$.title").value(event.title))
-            .andExpect(jsonPath("$.type").value("vacation"))
-            .andExpect(jsonPath("$.username").value(username))
+            .andExpect(jsonPath("$.id").value(2))
+            .andExpect(jsonPath("$.username").value("alice"))
     }
 
     @Test
-    fun `test PUT`() {
-        val username = faker.credentials().username()
-        val user = findOrCreate(username)
-        val eventDto = eventMapper.toDto(
-            Event("some eventDto", EventType.NONE, LocalDate.now(), LocalDate.now().plusDays(1), true, user)
+    fun `PUT assigns the path id before updating`() {
+        val request = EventDto(
+            id = 3,
+            title = "Updated vacation",
+            type = "vacation",
+            start = LocalDate.of(2026, 9, 1),
+            end = LocalDate.of(2026, 9, 2),
         )
-        val event = eventService.create(eventDto, user.username)
-        val eventUpdate = eventMapper.toDto(
-            Event("some eventDto NEW", EventType.NONE, LocalDate.now(), LocalDate.now().plusDays(1), true, user)
-        )
+        val event = event("alice", 3).copy(title = "Updated vacation")
+        given(eventService.update(request, "alice")).willReturn(event)
+        given(eventMapper.toDto(event)).willReturn(dto(event))
+
         mvc.perform(
-            put("/events/" + event.id)
+            put("/events/3")
+                .with(token("alice"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(mapper.writeValueAsString(eventUpdate))
-                .with(token(username))
+                .content(mapper.writeValueAsString(request.copy(id = null)))
         )
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$").isMap)
-            .andExpect(jsonPath("$.title").value("some eventDto NEW"))
-            .andExpect(jsonPath("$.username").value(username))
+            .andExpect(jsonPath("$.id").value(3))
+            .andExpect(jsonPath("$.title").value("Updated vacation"))
     }
 
     @Test
-    fun `test GET list`() {
-        val username = faker.credentials().username()
-        val user = findOrCreate(username)
-        var now = LocalDateTime.now()
-        for (i in 0..9) {
-            val eventDto = eventMapper.toDto(
-                Event("some eventDto", EventType.NONE, LocalDate.now(), LocalDate.now().plusDays(1), true, user)
-            )
-            eventService.create(eventDto, user.username)
-            now = now.plusDays(1)
-        }
-        mvc.perform(
-            get("/events")
-                .with(token(username))
-        )
+    fun `DELETE forwards the event id and authenticated username`() {
+        doNothing().`when`(eventService).delete(4, "alice")
+
+        mvc.perform(delete("/events/4").with(token("alice")))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$").isArray)
-            .andExpect(jsonPath("$.length()").value(10))
-            .andExpect(jsonPath("$[0].title").value("some eventDto"))
-            .andExpect(jsonPath("$[0].username").value(username))
     }
 
     @Test
-    fun `test DELETE`() {
-        val username = faker.credentials().username()
-        val user = findOrCreate(username)
-        val eventDto = eventMapper.toDto(
-            Event("some eventDto", EventType.NONE, LocalDate.now(), LocalDate.now().plusDays(1), true, user)
-        )
-        val event = eventService.create(eventDto, user.username)
-        mvc.perform(
-            delete("/events/" + event.id)
-                .with(token(username))
-        )
-            .andExpect(status().is2xxSuccessful)
+    fun `event endpoints require authentication`() {
+        mvc.perform(get("/events"))
+            .andExpect(status().isUnauthorized)
     }
 
-    @Test
-    fun `test DELETE 4xx`() {
-        val username = faker.credentials().username()
-        val user = findOrCreate(username)
-        val eventDto = eventMapper.toDto(
-            Event("some eventDto", EventType.NONE, LocalDate.now(), LocalDate.now().plusDays(1), true, user)
-        )
-        val event = eventService.create(eventDto, user.username)
-        mvc.perform(
-            delete("/events/" + event.id)
-                .with(token())
-        )
-            .andExpect(status().is4xxClientError)
-    }
+    private fun event(username: String, id: Long) = Event(
+        title = "Vacation",
+        type = EventType.VACATION,
+        start = LocalDate.of(2026, 9, 1),
+        end = LocalDate.of(2026, 9, 2),
+        user = User("$username@example.org", username, username, active = true),
+        id = id,
+    )
 
-    fun findOrCreate(username: String): User {
-        val password = faker.credentials().password()
-        return userService.findByIdentity(username) ?: userService.create(
-            CreateUserRequest(
-                username,
-                faker.internet().emailAddress(),
-                faker.name().fullName(),
-                password = password,
-                passwordRepeat = password
-            )
-        )
-    }
+    private fun dto(event: Event) = EventDto(
+        id = event.id,
+        title = event.title,
+        type = event.type?.value,
+        start = event.start,
+        end = event.end,
+        username = event.user?.username,
+    )
 }

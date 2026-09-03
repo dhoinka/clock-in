@@ -1,6 +1,5 @@
 package com.gloomstone.clockin.config.security
 
-import com.gloomstone.clockin.config.AppConfig
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

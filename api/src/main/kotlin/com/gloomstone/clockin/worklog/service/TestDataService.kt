@@ -2,13 +2,11 @@ package com.gloomstone.clockin.worklog.service
 
 import com.gloomstone.clockin.iam.domain.User
 import com.gloomstone.clockin.iam.dto.CreateUserRequest
-import com.gloomstone.clockin.iam.dto.UpdateUserRequest
 import com.gloomstone.clockin.iam.service.UserService
 import com.gloomstone.clockin.worklog.domain.TimeEntry
 import com.gloomstone.clockin.worklog.domain.Workday
 import com.gloomstone.clockin.worklog.repository.DayRepository
 import com.gloomstone.clockin.worklog.repository.TimeEntryRepository
-import jakarta.annotation.PostConstruct
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
@@ -19,7 +17,7 @@ import java.time.LocalDateTime
 
 @Service
 @Profile("dev")
-class TestDataService (
+class TestDataService(
     private val timeEntryRepository: TimeEntryRepository,
     private val dayRepository: DayRepository,
     private val userService: UserService
@@ -49,7 +47,7 @@ class TestDataService (
 
         var now = LocalDateTime.now().minusDays(30).withHour(8).withDayOfMonth(6)
         for (i in 0 until 30) {
-            createFullDay(now,user)
+            createFullDay(now, user)
             now = now.plusDays(1)
         }
     }
