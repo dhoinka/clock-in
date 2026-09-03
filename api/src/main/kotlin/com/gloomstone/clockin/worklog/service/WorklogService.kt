@@ -102,13 +102,7 @@ class WorklogService(
 
     private fun getSortedList(newLogEntries: List<TimeEntry>): List<TimeEntry> {
         return newLogEntries
-            .sortedWith { o1, o2 ->
-                if (o1.start != null && o2.start != null) {
-                    o1.start!!.compareTo(o2.start)
-                } else {
-                    1
-                }
-            }
+            .sortedWith(compareBy<TimeEntry> { it.start == null }.thenBy { it.start })
             .toList()
     }
 

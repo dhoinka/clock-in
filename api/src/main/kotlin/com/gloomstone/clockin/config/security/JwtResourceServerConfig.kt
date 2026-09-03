@@ -8,9 +8,12 @@ import org.springframework.core.convert.converter.Converter
 import org.springframework.security.authentication.AbstractAuthenticationToken
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator
+import org.springframework.security.oauth2.core.OAuth2Error
+import org.springframework.security.oauth2.core.OAuth2TokenValidator
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.*
-import org.springframework.security.oauth2.core.*
 import java.nio.charset.StandardCharsets
 import javax.crypto.spec.SecretKeySpec
 
@@ -33,9 +36,11 @@ class JwtResourceServerConfig(private val appConfig: AppConfig) {
                 !jwt.audience.orEmpty().contains("gloomstone.com") -> OAuth2TokenValidatorResult.failure(
                     OAuth2Error("invalid_token", "Required audience is missing", null)
                 )
+
                 jwt.getClaimAsString("token_type") != "access" -> OAuth2TokenValidatorResult.failure(
                     OAuth2Error("invalid_token", "Token is not an access token", null)
                 )
+
                 else -> OAuth2TokenValidatorResult.success()
             }
         }

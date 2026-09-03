@@ -1,232 +1,244 @@
 package com.gloomstone.clockin.iam.service
 
+import com.gloomstone.clockin.iam.domain.Account
+import com.gloomstone.clockin.iam.domain.Role
+import com.gloomstone.clockin.iam.domain.User
 import com.gloomstone.clockin.iam.dto.CreateUserRequest
+import com.gloomstone.clockin.iam.dto.UpdateSelfRequest
 import com.gloomstone.clockin.iam.dto.UpdateUserRequest
 import com.gloomstone.clockin.iam.mapper.UserMapper
-import com.gloomstone.clockin.iam.util.mockEncode
-import com.gloomstone.clockin.iam.util.mockMatches
-import net.datafaker.Faker
+import com.gloomstone.clockin.iam.repository.AccountRepository
+import com.gloomstone.clockin.iam.repository.RoleRepository
+import com.gloomstone.clockin.iam.repository.UserRepository
+import com.gloomstone.clockin.shared.exception.*
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.fail
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.ArgumentMatchers.anyString
-import org.mockito.BDDMockito.given
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
+import org.mockito.kotlin.*
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.test.context.bean.override.mockito.MockitoBean
 
-/**
- * Created by daniel on 15.06.2017.
- */
-@SpringBootTest
 class UserServiceTests {
-    @Autowired
-    lateinit var userService: UserService
+    private val userRepository: UserRepository = mock()
+    private val accountRepository: AccountRepository = mock()
+    private val roleRepository: RoleRepository = mock()
+    private val passwordEncoder: PasswordEncoder = mock()
+    private val userMapper: UserMapper = mock()
 
-    @MockitoBean
-    lateinit var passwordEncoder: PasswordEncoder
-
-    @Autowired
-    lateinit var userMapper: UserMapper
-
-    val faker = Faker()
+    private lateinit var userService: UserService
 
     @BeforeEach
-    fun before() {
-        given(passwordEncoder.encode(anyString())).will { mockEncode(it) }
-        given(passwordEncoder.matches(anyString(), anyString())).will { mockMatches(it) }
+    fun setUp() {
+        userService = UserService(
+            userRepository,
+            accountRepository,
+            roleRepository,
+            passwordEncoder,
+            userMapper,
+        )
+        whenever(accountRepository.save(any<Account>())).thenAnswer { it.arguments[0] as Account }
+        whenever(userRepository.save(any<User>())).thenAnswer { it.arguments[0] as User }
     }
 
     @Test
-    fun `test Create`() {
-        val email = faker.internet().emailAddress()
-        val username = faker.credentials().username()
-        val password = "test password"
-        val dto = CreateUserRequest(
-            username = username,
-            email = email,
-            active = true,
-            password = password,
-            passwordRepeat = password
+    fun `create normalizes identity, encodes password, and persists requested roles`() {
+        val manager = Role("manager")
+        whenever(roleRepository.findByName("manager")).thenReturn(manager)
+        whenever(passwordEncoder.encode("password123")).thenReturn("encoded-password")
 
+        val created = userService.create(
+            createRequest(username = "Alice", email = "ALICE@EXAMPLE.COM", roles = listOf("manager"))
         )
 
-        var user = userService.create(dto)
-        user = userService.findByIdentity(user.id) ?: fail("User not found")
-
-        assertThat(user.id).isNotEmpty()
-        assertThat(user.email).isEqualTo(email)
-        assertThat(user.account).isNotNull
-        assertThat(user.account?.password).isNotNull
-        assertThat(user.account?.password).isNotEqualTo(password)
-        assertThat(passwordEncoder.matches(password, user.account?.password)).isEqualTo(true)
+        assertThat(created.username).isEqualTo("alice")
+        assertThat(created.email).isEqualTo("alice@example.com")
+        assertThat(created.active).isTrue()
+        assertThat(created.account?.password).isEqualTo("encoded-password")
+        assertThat(created.roles).containsExactly(manager)
+        verify(accountRepository).save(created.account!!)
+        verify(userRepository).save(created)
     }
 
     @Test
-    fun `test create`() {
-        val users = userService.findAll()
-        assertThat(users).isNotNull
+    fun `create rejects mismatched or empty passwords without persisting`() {
+        assertThatThrownBy {
+            userService.create(createRequest(password = "password123", passwordRepeat = "different"))
+        }.isInstanceOf(PasswordNotEqualException::class.java)
+
+        assertThatThrownBy {
+            userService.create(createRequest(password = "", passwordRepeat = ""))
+        }.isInstanceOf(BadRequestException::class.java)
+            .hasMessage("Password is required")
+
+        verify(accountRepository, never()).save(any<Account>())
+        verify(userRepository, never()).save(any<User>())
     }
 
     @Test
-    fun `test findAll with data`() {
-        val email1 = faker.internet().emailAddress()
-        val userName1 = faker.credentials().username()
+    fun `create rejects an existing normalized username`() {
+        whenever(userRepository.findOneByUsername("alice")).thenReturn(user(username = "alice"))
 
-        val email2 = faker.internet().emailAddress()
-        val userName2 = faker.credentials().username()
+        assertThatThrownBy {
+            userService.create(createRequest(username = "Alice"))
+        }.isInstanceOf(UsernameAlreadyExistsException::class.java)
 
-        val email3 = faker.internet().emailAddress()
-        val userName3 = faker.credentials().username()
-
-        userService.create(
-            CreateUserRequest(
-                username = userName1,
-                email = email1,
-                password = "test",
-                passwordRepeat = "test"
-
-            )
-        )
-        userService.create(
-            CreateUserRequest(
-                username = userName2,
-                email = email2,
-                password = "test",
-                passwordRepeat = "test"
-
-            )
-        )
-        userService.create(
-            CreateUserRequest(
-                username = userName3,
-                email = email3,
-                password = "test",
-                passwordRepeat = "test"
-
-            )
-        )
-
-        val users = userService.findAll()
-        assertThat(users).isNotNull
-        assertThat(users.size).isGreaterThanOrEqualTo(3)
+        verify(userRepository, never()).save(any<User>())
     }
 
     @Test
-    fun `test findOneByEmail`() {
-        val username = faker.credentials().username()
-        val email = faker.internet().emailAddress()
-        val password = faker.credentials().password()
-        val dto = CreateUserRequest(
-            username = username,
-            email = email,
-            active = true,
-            password = password,
-            passwordRepeat = password
-        )
-        val user = userService.create(dto)
+    fun `create rejects an unknown requested role`() {
+        whenever(passwordEncoder.encode("password123")).thenReturn("encoded-password")
+        whenever(roleRepository.findByName("unknown")).thenReturn(null)
 
-        val foundUser = user.id.let { userService.findByIdentity(it) } ?: fail("User not found")
-        assertThat(foundUser.id).isEqualTo(user.id)
-        assertThat(foundUser.account).isNotNull
+        assertThatThrownBy {
+            userService.create(createRequest(roles = listOf("unknown")))
+        }.isInstanceOf(BadRequestException::class.java)
+            .hasMessage("Role not found")
+
+        verify(accountRepository, never()).save(any<Account>())
     }
 
     @Test
-    fun `test findOne`() {
-        val username = faker.credentials().username()
-        val email = faker.internet().emailAddress()
-        val password = faker.credentials().password()
-        val dto = CreateUserRequest(
-            username = username,
-            email = email,
-            active = true,
-            password = password,
-            passwordRepeat = password
-        )
-        val user = userService.create(dto)
+    fun `findByIdentity checks username then email then id`() {
+        val found = user(id = "user-id")
+        whenever(userRepository.findOneByUsername("user-id")).thenReturn(null)
+        whenever(userRepository.findOneByEmail("user-id")).thenReturn(null)
+        whenever(userRepository.findById("user-id")).thenReturn(found)
 
-        user.id.let { userService.findByIdentity(it) } ?: fail("User not found")
-        username.let { userService.findByIdentity(it) } ?: fail("User not found")
-        email.let { userService.findByIdentity(it) } ?: fail("User not found")
+        assertThat(userService.findByIdentity("user-id")).isSameAs(found)
+
+        verify(userRepository).findOneByUsername("user-id")
+        verify(userRepository).findOneByEmail("user-id")
+        verify(userRepository).findById("user-id")
     }
 
     @Test
-    fun `test update`() {
-        val username = faker.credentials().username()
-        val email = faker.internet().emailAddress()
-        val password = "test password"
-        val dto = CreateUserRequest(
-            username = username,
-            email = email,
-            active = true,
-            password = password,
-            passwordRepeat = password
-        )
-        val user = userService.create(dto)
+    fun `findByIdentity stops after a username match`() {
+        val found = user(username = "alice")
+        whenever(userRepository.findOneByUsername("alice")).thenReturn(found)
 
-        val newEmail = faker.internet().emailAddress()
-        user.email = newEmail
-        var updatedUser = userService.update(
-            user.id, UpdateUserRequest(
-                email = newEmail
-            )
-        )
+        assertThat(userService.findByIdentity("alice")).isSameAs(found)
 
-        updatedUser = userService.findByIdentity(updatedUser.id) ?: fail("User not found")
-        assertThat(updatedUser.id).isEqualTo(user.id)
-        assertThat(updatedUser.email).isEqualTo(newEmail)
-
+        verify(userRepository, never()).findOneByEmail(any())
+        verify(userRepository, never()).findById(any<String>())
     }
 
     @Test
-    fun `test changePassword`() {
-        val password = faker.credentials().password()
-        val newPassword = faker.credentials().password()
+    fun `changePassword verifies the old password before saving encoded replacement`() {
+        val user = user(account = Account(password = "old-encoded"))
+        whenever(passwordEncoder.matches("old-password", "old-encoded")).thenReturn(true)
+        whenever(passwordEncoder.encode("new-password")).thenReturn("new-encoded")
 
-        val username = faker.credentials().username()
-        val email = faker.internet().emailAddress()
+        val updated = userService.changePassword(user, "old-password", "new-password")
 
-        val dto = CreateUserRequest(
-            username = username,
-            email = email,
-            active = true,
-            password = password,
-            passwordRepeat = password
-        )
-
-        var user = userService.create(dto)
-        val oldPassword = user.account!!.password
-        assertThat(user.id).isNotEmpty()
-        assertThat(user.account).isNotNull
-
-        user = userService.changePassword(user, newPassword)
-        user = userService.findByIdentity(user.id) ?: fail("User not found")
-
-        assertThat(user.id).isNotEmpty()
-        assertThat(user.account).isNotNull
-        assertThat(user.account!!.password).isNotEqualTo(oldPassword)
-        assertThat(passwordEncoder.matches(newPassword, user.account!!.password)).isEqualTo(true)
+        assertThat(updated.account?.password).isEqualTo("new-encoded")
+        verify(userRepository).save(user)
     }
 
     @Test
-    fun `test remove`() {
-        val username = faker.credentials().username()
-        val email = faker.internet().emailAddress()
-        val password = faker.credentials().password()
+    fun `changePassword rejects an invalid old password`() {
+        val user = user(account = Account(password = "old-encoded"))
+        whenever(passwordEncoder.matches("wrong-password", "old-encoded")).thenReturn(false)
 
-        val dto = CreateUserRequest(
-            username = username,
-            email = email,
-            active = true,
-            password = password,
-            passwordRepeat = password
-        )
+        assertThatThrownBy {
+            userService.changePassword(user, "wrong-password", "new-password")
+        }.isInstanceOf(AuthenticationException::class.java)
 
-        val user = userService.create(dto)
-        assertThat(user.id).isNotEmpty()
-        user.id.let { userService.delete(it) }
-        user.id.let { assertThat(userService.findByIdentity(it)).isNull() }
+        verify(userRepository, never()).save(any<User>())
+        verify(passwordEncoder, never()).encode(any())
     }
+
+    @Test
+    fun `update resolves requested roles before saving mapped user`() {
+        val existing = user(id = "user-id", roles = mutableListOf(Role("user")))
+        val manager = Role("manager")
+        val request = UpdateUserRequest(name = "Alice Doe", roles = listOf("manager"))
+        whenever(userRepository.findOneByUsername("user-id")).thenReturn(null)
+        whenever(userRepository.findOneByEmail("user-id")).thenReturn(null)
+        whenever(userRepository.findById("user-id")).thenReturn(existing)
+        whenever(roleRepository.findByName("manager")).thenReturn(manager)
+        doAnswer { invocation ->
+            val target = invocation.arguments[1] as User
+            target.name = "Alice Doe"
+        }.whenever(userMapper).update(request, existing)
+
+        val updated = userService.update("user-id", request)
+
+        assertThat(updated.name).isEqualTo("Alice Doe")
+        assertThat(updated.roles).containsExactly(manager)
+        verify(userMapper).update(request, existing)
+        verify(userRepository).save(existing)
+    }
+
+    @Test
+    fun `updateSelf delegates only allowed fields to mapper and saves user`() {
+        val existing = user(id = "user-id", roles = mutableListOf(Role("manager")), active = true)
+        val request = UpdateSelfRequest(name = "New name")
+        whenever(userRepository.findOneByUsername("user-id")).thenReturn(null)
+        whenever(userRepository.findOneByEmail("user-id")).thenReturn(null)
+        whenever(userRepository.findById("user-id")).thenReturn(existing)
+
+        userService.updateSelf("user-id", request)
+
+        verify(userMapper).updateSelf(request, existing)
+        verify(userRepository).save(existing)
+        assertThat(existing.roles).extracting<String> { it.name }.containsExactly("manager")
+        assertThat(existing.active).isTrue()
+    }
+
+    @Test
+    fun `delete ignores the protected admin account but deletes other users`() {
+        val admin = user(id = "admin-id", username = "admin")
+        val alice = user(id = "alice-id", username = "alice")
+        whenever(userRepository.findOneByUsername("admin-id")).thenReturn(null)
+        whenever(userRepository.findOneByEmail("admin-id")).thenReturn(null)
+        whenever(userRepository.findById("admin-id")).thenReturn(admin)
+        whenever(userRepository.findOneByUsername("alice-id")).thenReturn(null)
+        whenever(userRepository.findOneByEmail("alice-id")).thenReturn(null)
+        whenever(userRepository.findById("alice-id")).thenReturn(alice)
+
+        userService.delete("admin-id")
+        userService.delete("alice-id")
+
+        verify(userRepository, never()).delete(admin)
+        verify(userRepository).delete(alice)
+    }
+
+    @Test
+    fun `delete rejects an unknown identity`() {
+        assertThatThrownBy { userService.delete("missing") }
+            .isInstanceOf(NotFoundException::class.java)
+    }
+
+    private fun createRequest(
+        username: String = "alice",
+        email: String = "alice@example.com",
+        password: String = "password123",
+        passwordRepeat: String = password,
+        roles: List<String>? = null,
+    ) = CreateUserRequest(
+        username = username,
+        email = email,
+        active = true,
+        password = password,
+        passwordRepeat = passwordRepeat,
+        roles = roles,
+    )
+
+    private fun user(
+        id: String = "user-id",
+        username: String = "alice",
+        email: String = "alice@example.com",
+        account: Account? = Account(password = "encoded-password"),
+        roles: MutableList<Role> = mutableListOf(),
+        active: Boolean = true,
+    ) = User(
+        id = id,
+        username = username,
+        email = email,
+        name = username,
+        account = account,
+        roles = roles,
+        active = active,
+    )
 }

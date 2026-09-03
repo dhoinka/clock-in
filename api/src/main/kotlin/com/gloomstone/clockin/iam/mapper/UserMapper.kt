@@ -2,8 +2,8 @@ package com.gloomstone.clockin.iam.mapper
 
 import com.gloomstone.clockin.iam.domain.Role
 import com.gloomstone.clockin.iam.domain.User
-import com.gloomstone.clockin.iam.dto.UpdateUserRequest
 import com.gloomstone.clockin.iam.dto.UpdateSelfRequest
+import com.gloomstone.clockin.iam.dto.UpdateUserRequest
 import com.gloomstone.clockin.iam.dto.UserDto
 import org.mapstruct.Mapper
 import org.mapstruct.Mapping

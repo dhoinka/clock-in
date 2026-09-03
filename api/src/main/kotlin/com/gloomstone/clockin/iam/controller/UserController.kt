@@ -8,10 +8,10 @@ import com.gloomstone.clockin.iam.service.UserService
 import com.gloomstone.clockin.shared.UserPrincipal
 import com.gloomstone.clockin.shared.exception.NotFoundException
 import com.gloomstone.clockin.shared.exception.PasswordNotEqualException
-import org.slf4j.LoggerFactory
-import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.security.access.prepost.PreAuthorize
 import jakarta.validation.Valid
+import org.slf4j.LoggerFactory
+import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 
 @RestController

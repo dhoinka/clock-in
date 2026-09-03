@@ -16,7 +16,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -128,7 +127,6 @@ class AuthControllerTests {
     }
 
     @Test
-    @DirtiesContext
     fun `test POST refresh token returns new tokens`() {
         val email = faker.internet().emailAddress()
         val password = faker.credentials().password()

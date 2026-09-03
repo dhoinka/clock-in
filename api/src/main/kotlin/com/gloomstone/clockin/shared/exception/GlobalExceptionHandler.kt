@@ -4,6 +4,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
+import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -154,4 +155,19 @@ class GlobalExceptionHandler {
         )
         return ResponseEntity(errorResponse, HttpStatus.UNAUTHORIZED)
     }
+
+    @ExceptionHandler(AccessDeniedException::class)
+    fun handleAccessDeniedException(
+        ex: AccessDeniedException,
+        request: WebRequest
+    ): ResponseEntity<ErrorResponse> = ResponseEntity(
+        ErrorResponse(
+            timestamp = LocalDateTime.now(),
+            status = HttpStatus.FORBIDDEN.value(),
+            error = HttpStatus.FORBIDDEN.reasonPhrase,
+            message = "Access denied",
+            path = request.getDescription(false).removePrefix("uri=")
+        ),
+        HttpStatus.FORBIDDEN
+    )
 }

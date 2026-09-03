@@ -6,11 +6,11 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.client.SimpleClientHttpRequestFactory
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.transaction.annotation.EnableTransactionManagement
 import org.springframework.web.client.RestTemplate
-import org.springframework.http.client.SimpleClientHttpRequestFactory
 import tools.jackson.databind.DeserializationFeature
 
 

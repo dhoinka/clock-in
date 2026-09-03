@@ -153,7 +153,7 @@ class WorklogControllerTest {
     }
 
     @Test
-    fun `test PUT fail`() {
+    fun `test PUT for unknown user returns bad request`() {
         val date = LocalDate.now()
         val req = UpdateWorkdayRequest(
             date, mutableListOf(
@@ -178,7 +178,7 @@ class WorklogControllerTest {
                 .content(mapper.writeValueAsString(req))
                 .with(token(username))
         )
-        //.andExpect(MockMvcResultMatchers.status().is4xxClientError)
+            .andExpect(status().isBadRequest)
     }
 
     @Test
