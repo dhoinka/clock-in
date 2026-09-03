@@ -5,7 +5,6 @@ plugins {
     kotlin("jvm") version "2.4.10"
     kotlin("plugin.spring") version "2.4.10"
     kotlin("plugin.jpa") version "2.4.10"
-    kotlin("kapt") version "2.4.10"
 }
 
 repositories {
@@ -30,7 +29,6 @@ dependencies {
 
     // Third-party Libraries
     implementation("com.auth0:java-jwt:4.6.0")
-    implementation("org.mapstruct:mapstruct:1.6.3")
     implementation("com.aventrix.jnanoid:jnanoid:2.0.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
@@ -44,9 +42,6 @@ dependencies {
 
     testImplementation("net.datafaker:datafaker:2.7.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.3.0")
-
-    kapt("org.mapstruct:mapstruct-processor:1.6.3")
-    kapt("org.springframework.boot:spring-boot-configuration-processor")
 }
 
 
@@ -58,14 +53,6 @@ java {
         languageVersion = JavaLanguageVersion.of(21)
     }
 }
-
-
-kapt {
-    arguments {
-        arg("mapstruct.defaultComponentModel", "spring")
-    }
-}
-
 kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict", "-jvm-default=no-compatibility")

@@ -5,42 +5,41 @@ import com.gloomstone.clockin.iam.domain.User
 import com.gloomstone.clockin.iam.dto.UpdateSelfRequest
 import com.gloomstone.clockin.iam.dto.UpdateUserRequest
 import com.gloomstone.clockin.iam.dto.UserDto
-import org.mapstruct.Mapper
-import org.mapstruct.Mapping
-import org.mapstruct.MappingTarget
-import org.mapstruct.NullValuePropertyMappingStrategy
+import org.springframework.stereotype.Component
+import java.time.LocalDateTime
 
-@Mapper(
-    componentModel = "spring",
-    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
-)
-interface UserMapper {
-    fun toDto(user: User): UserDto
+@Component
+class UserMapper {
+    fun toDto(user: User) = UserDto(
+        id = user.id,
+        username = user.username,
+        email = user.email,
+        name = user.name,
+        active = user.active,
+        roles = user.roles.map(Role::name),
+        createdAt = user.createdAt,
+        updatedAt = user.updatedAt,
+    )
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "account", ignore = true)
-    @Mapping(target = "roles", ignore = true)
-    fun toEntity(userDto: UserDto): User
+    fun toEntity(userDto: UserDto) = User(
+        email = userDto.email,
+        username = userDto.username,
+        name = userDto.name.orEmpty(),
+        active = userDto.active ?: false,
+        createdAt = userDto.createdAt ?: LocalDateTime.now(),
+        updatedAt = userDto.updatedAt ?: LocalDateTime.now(),
+    )
 
-    @Mapping(target = "roles", ignore = true)
-    @Mapping(target = "account", ignore = true)
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    fun update(userMgmtDto: UpdateUserRequest, @MappingTarget user: User)
+    fun update(request: UpdateUserRequest, user: User) {
+        request.username?.let { user.username = it }
+        request.email?.let { user.email = it }
+        request.name?.let { user.name = it }
+        request.active?.let { user.active = it }
+    }
 
-    @Mapping(target = "roles", ignore = true)
-    @Mapping(target = "active", ignore = true)
-    @Mapping(target = "account", ignore = true)
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    fun updateSelf(request: UpdateSelfRequest, @MappingTarget user: User)
-
-
-    fun rolesToString(roles: List<Role>): List<String>
-
-    fun roleToString(role: Role): String {
-        return role.name
+    fun updateSelf(request: UpdateSelfRequest, user: User) {
+        request.username?.let { user.username = it }
+        request.email?.let { user.email = it }
+        request.name?.let { user.name = it }
     }
 }
