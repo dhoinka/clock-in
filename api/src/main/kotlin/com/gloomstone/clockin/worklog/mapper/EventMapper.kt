@@ -1,4 +1,5 @@
 package com.gloomstone.clockin.worklog.mapper
+
 import com.gloomstone.clockin.worklog.domain.Event
 import com.gloomstone.clockin.worklog.domain.EventStatus
 import com.gloomstone.clockin.worklog.domain.EventType

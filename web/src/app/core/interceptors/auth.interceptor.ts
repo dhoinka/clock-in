@@ -3,13 +3,16 @@ import {
   HttpRequest,
   HttpHandlerFn,
   HttpErrorResponse,
+  HttpContextToken,
 } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, switchMap, throwError } from 'rxjs';
-import { from } from 'rxjs';
+import { catchError, from, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
-let isRefreshing = false;
+const RETRIED_AFTER_REFRESH = new HttpContextToken<boolean>(() => false);
+
+const isAuthEndpoint = (url: string): boolean =>
+  /\/api\/auth\/(login|signup|refresh|logout|session)(?:[/?#]|$)/.test(url);
 
 export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
@@ -19,11 +22,7 @@ export const authInterceptor: HttpInterceptorFn = (
   const token = authService.getToken();
 
   let authReq = req;
-  if (
-    token &&
-    !req.url.includes('/auth/login') &&
-    !req.url.includes('/auth/refresh')
-  ) {
+  if (token && !isAuthEndpoint(req.url)) {
     authReq = req.clone({
       setHeaders: { Authorization: `Bearer ${token}` },
     });
@@ -32,29 +31,31 @@ export const authInterceptor: HttpInterceptorFn = (
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
       if (
-        (error.status === 401 || error.status === 403) &&
-        !req.url.includes('/auth/login') &&
-        !req.url.includes('/auth/refresh')
+        error.status === 401 &&
+        !isAuthEndpoint(req.url) &&
+        !req.context.get(RETRIED_AFTER_REFRESH)
       ) {
-        if (!isRefreshing) {
-          isRefreshing = true;
-          return from(authService.refreshToken()).pipe(
-            switchMap((newToken) => {
-              isRefreshing = false;
-              if (newToken) {
-                const retryReq = req.clone({
-                  setHeaders: { Authorization: `Bearer ${newToken}` },
-                });
-                return next(retryReq);
-              }
-              return throwError(() => error);
-            }),
-            catchError((err) => {
-              isRefreshing = false;
-              return throwError(() => err);
+        const currentToken = authService.getToken();
+        if (token && currentToken && currentToken !== token) {
+          return next(
+            req.clone({
+              context: req.context.set(RETRIED_AFTER_REFRESH, true),
+              setHeaders: { Authorization: `Bearer ${currentToken}` },
             }),
           );
         }
+        return from(authService.refreshToken()).pipe(
+          switchMap((newToken) => {
+            if (newToken) {
+              const retryReq = req.clone({
+                context: req.context.set(RETRIED_AFTER_REFRESH, true),
+                setHeaders: { Authorization: `Bearer ${newToken}` },
+              });
+              return next(retryReq);
+            }
+            return throwError(() => error);
+          }),
+        );
       }
       return throwError(() => error);
     }),

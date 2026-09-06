@@ -34,6 +34,7 @@ import { routes } from './app.routes';
 import { provideZard } from '@/shared/core/provider/providezard';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { ThemeService } from './core/services/theme.service';
+import { AuthService } from './core/services/auth.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -67,5 +68,6 @@ export const appConfig: ApplicationConfig = {
       const themeService = inject(ThemeService);
       themeService.loadTheme();
     }),
+    provideAppInitializer(() => inject(AuthService).initialize()),
   ],
 };

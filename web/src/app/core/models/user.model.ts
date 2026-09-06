@@ -34,7 +34,6 @@ export const resetPasswordRequestSchema = z.object({
 
 export const authSchema = z.object({
   accessToken: z.string(),
-  refreshToken: z.string(),
   user: userSchema,
 });
 

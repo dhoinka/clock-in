@@ -131,12 +131,16 @@ class GlobalExceptionHandler {
         ex: AuthenticationException,
         request: WebRequest
     ): ResponseEntity<ErrorResponse> {
+        val path = request.getDescription(false).removePrefix("uri=")
+        if (path == "/auth/refresh") {
+            logger.warn("Refresh request returned 401")
+        }
         val errorResponse = ErrorResponse(
             timestamp = LocalDateTime.now(),
             status = HttpStatus.UNAUTHORIZED.value(),
             error = HttpStatus.UNAUTHORIZED.reasonPhrase,
             message = ex.message ?: "Authentication failed",
-            path = request.getDescription(false).removePrefix("uri=")
+            path = path
         )
         return ResponseEntity(errorResponse, HttpStatus.UNAUTHORIZED)
     }

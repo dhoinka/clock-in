@@ -13,8 +13,6 @@ class RefreshSession(
     var id: String,
     @Column(name = "user_id", nullable = false)
     var userId: String,
-    @Column(name = "token_jti", nullable = false)
-    var tokenJti: String,
     @Column(name = "token_hash", nullable = false, length = 64)
     var tokenHash: String,
     @Column(name = "expires_at", nullable = false)

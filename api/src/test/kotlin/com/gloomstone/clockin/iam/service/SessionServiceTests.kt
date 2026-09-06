@@ -1,27 +1,22 @@
 package com.gloomstone.clockin.iam.service
 
+import com.gloomstone.clockin.config.AppConfig
 import com.gloomstone.clockin.iam.domain.RefreshSession
 import com.gloomstone.clockin.iam.repository.RefreshSessionRepository
-import com.gloomstone.clockin.shared.security.JwtUtil
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.time.Instant
 
-class RefreshSessionServiceTests {
+class SessionServiceTests {
     private val repository: RefreshSessionRepository = mock()
-    private val jwtUtil = JwtUtil("test-secret")
-    private val service = RefreshSessionService(repository, jwtUtil)
+    private val service = SessionService(repository, AppConfig())
 
     @Test
     fun `rotating a token replaces it and replay revokes the session`() {
-        val token = service.create("user-id", "alice")
+        val token = service.create("user-id")
         val sessionCaptor = argumentCaptor<RefreshSession>()
-        verify(repository).save(sessionCaptor.capture())
+        verify(repository).saveAndFlush(sessionCaptor.capture())
         val session = sessionCaptor.firstValue
         whenever(repository.findByIdForUpdate(session.id)).thenReturn(session)
 
@@ -34,6 +29,22 @@ class RefreshSessionServiceTests {
         val replay = service.rotate(token)
 
         assertThat(replay).isNull()
+        assertThat(session.revokedAt).isNotNull()
+    }
+
+    @Test
+    fun `replaying a token older than the previous rotation still revokes the session`() {
+        val originalToken = service.create("user-id")
+        val sessionCaptor = argumentCaptor<RefreshSession>()
+        verify(repository).saveAndFlush(sessionCaptor.capture())
+        val session = sessionCaptor.firstValue
+        whenever(repository.findByIdForUpdate(session.id)).thenReturn(session)
+
+        val firstRotation = service.rotate(originalToken) ?: error("First rotation failed")
+        val secondRotation = service.rotate(firstRotation.refreshToken)
+
+        assertThat(secondRotation).isNotNull
+        assertThat(service.rotate(originalToken)).isNull()
         assertThat(session.revokedAt).isNotNull()
     }
 

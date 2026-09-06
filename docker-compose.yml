@@ -36,6 +36,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD:-local-postgres-password-change-before-deployment}"
       APP_JWT_SECRET: "${APP_JWT_SECRET:-local-only-dummy-jwt-secret-change-before-deployment-0123456789abcdef}"
+      APP_REFRESH_COOKIE_SECURE: "false"
 
   postgres:
     image: postgres:18

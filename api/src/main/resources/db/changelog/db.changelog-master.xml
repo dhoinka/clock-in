@@ -227,16 +227,13 @@
         </createIndex>
 
     </changeSet>
-    <changeSet id="3" author="codex">
+    <changeSet id="3" author="daniel">
         <createTable tableName="refresh_session">
             <column name="id" type="varchar(36)">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
             <column name="user_id" type="varchar(50)">
                 <constraints nullable="false"/>
-            </column>
-            <column name="token_jti" type="varchar(36)">
-                <constraints nullable="false" unique="true"/>
             </column>
             <column name="token_hash" type="varchar(64)">
                 <constraints nullable="false"/>

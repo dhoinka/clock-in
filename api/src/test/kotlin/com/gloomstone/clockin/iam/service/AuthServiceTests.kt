@@ -4,7 +4,6 @@ import com.gloomstone.clockin.iam.domain.Account
 import com.gloomstone.clockin.iam.domain.Role
 import com.gloomstone.clockin.iam.domain.User
 import com.gloomstone.clockin.iam.dto.PasswordRequestReset
-import com.gloomstone.clockin.iam.dto.RefreshRequest
 import com.gloomstone.clockin.iam.dto.UserDto
 import com.gloomstone.clockin.iam.mapper.UserMapper
 import com.gloomstone.clockin.shared.exception.AuthenticationException
@@ -23,13 +22,13 @@ class AuthServiceTests {
     private val passwordEncoder: PasswordEncoder = mock()
     private val userMapper: UserMapper = mock()
     private val jwtUtil = JwtUtil("test-secret")
-    private val refreshSessionService: RefreshSessionService = mock()
+    private val sessionService: SessionService = mock()
 
     private lateinit var authService: AuthService
 
     @BeforeEach
     fun setUp() {
-        authService = AuthService(userService, passwordEncoder, userMapper, jwtUtil, refreshSessionService)
+        authService = AuthService(userService, passwordEncoder, userMapper, jwtUtil, sessionService)
     }
 
     @Test
@@ -39,7 +38,7 @@ class AuthServiceTests {
         whenever(userService.findByIdentity("alice")).thenReturn(user)
         whenever(passwordEncoder.matches("password123", "encoded-password")).thenReturn(true)
         whenever(userMapper.toDto(user)).thenReturn(dto)
-        whenever(refreshSessionService.create(user.id, user.username)).thenReturn("refresh-token")
+        whenever(sessionService.create(user.id)).thenReturn("refresh-token")
 
         val credentials = authService.authenticate("ALICE", "password123")
 
@@ -95,11 +94,11 @@ class AuthServiceTests {
         val dto = userDto(user)
         whenever(userService.findByIdentity("alice-id")).thenReturn(user)
         whenever(userMapper.toDto(user)).thenReturn(dto)
-        val oldToken = jwtUtil.generateRefreshToken("alice", "session-id").value
-        whenever(refreshSessionService.rotate(oldToken))
-            .thenReturn(RefreshSessionService.Rotation(user.id, "new-refresh-token"))
+        val oldToken = "opaque-refresh-token"
+        whenever(sessionService.rotate(oldToken))
+            .thenReturn(SessionService.Rotation(user.id, "new-refresh-token"))
 
-        val credentials = authService.refresh(RefreshRequest(oldToken))
+        val credentials = authService.refresh(oldToken)
 
         assertThat(credentials.user).isEqualTo(dto)
         assertThat(credentials.accessToken).isNotBlank()
@@ -109,15 +108,16 @@ class AuthServiceTests {
 
     @Test
     fun `refresh rejects an inactive or missing user`() {
-        val oldToken = jwtUtil.generateRefreshToken("alice", "session-id").value
-        whenever(refreshSessionService.rotate(oldToken))
-            .thenReturn(RefreshSessionService.Rotation("alice-id", "new-refresh-token"))
+        val oldToken = "opaque-refresh-token"
+        whenever(sessionService.rotate(oldToken))
+            .thenReturn(SessionService.Rotation("alice-id", "new-refresh-token"))
         whenever(userService.findByIdentity("alice-id")).thenReturn(user(active = false))
 
         assertThatThrownBy {
-            authService.refresh(RefreshRequest(oldToken))
+            authService.refresh(oldToken)
         }.isInstanceOf(AuthenticationException::class.java)
 
+        verify(sessionService).revoke("new-refresh-token")
         verify(userService, never()).update(any())
     }
 
