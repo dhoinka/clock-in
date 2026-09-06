@@ -1,6 +1,9 @@
 package com.gloomstone.clockin.iam.controller
 
-import com.gloomstone.clockin.iam.dto.*
+import com.gloomstone.clockin.iam.dto.CreateUserRequest
+import com.gloomstone.clockin.iam.dto.LoginRequest
+import com.gloomstone.clockin.iam.dto.SignUpDto
+import com.gloomstone.clockin.iam.dto.UserDto
 import com.gloomstone.clockin.iam.mapper.UserMapper
 import com.gloomstone.clockin.iam.service.UserService
 import com.gloomstone.clockin.iam.util.mockEncode
@@ -18,6 +21,7 @@ import org.springframework.http.MediaType
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -26,7 +30,7 @@ import tools.jackson.databind.json.JsonMapper
 /**
  * Created by daniel on 19.06.2017.
  */
-@SpringBootTest
+@SpringBootTest(properties = ["app.refresh-cookie-secure=true"])
 @AutoConfigureMockMvc
 class AuthControllerTests {
     @Autowired
@@ -72,7 +76,7 @@ class AuthControllerTests {
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.accessToken").exists())
-            .andExpect(jsonPath("$.refreshToken").exists())
+            .andExpect(jsonPath("$.refreshToken").doesNotExist())
             .andExpect(jsonPath("$.user.email").value(user.email))
             .andExpect(jsonPath("$.user.username").value(user.username))
             .andExpect(jsonPath("$.user.name").value(user.name))
@@ -106,7 +110,7 @@ class AuthControllerTests {
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.accessToken").exists())
-            .andExpect(jsonPath("$.refreshToken").exists())
+            .andExpect(jsonPath("$.refreshToken").doesNotExist())
             .andExpect(jsonPath("$.user.email").value(email))
     }
 
@@ -127,7 +131,7 @@ class AuthControllerTests {
     }
 
     @Test
-    fun `test POST refresh token returns new tokens`() {
+    fun `test POST refresh token rotates cookie and rejects replay`() {
         val email = faker.internet().emailAddress()
         val password = faker.credentials().password()
         val user = createUser(email, password)
@@ -144,45 +148,65 @@ class AuthControllerTests {
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.accessToken").exists())
-            .andExpect(jsonPath("$.refreshToken").exists())
+            .andExpect(jsonPath("$.refreshToken").doesNotExist())
             .andExpect(jsonPath("$.user.email").value(user.email))
             .andReturn()
 
-        val loginResponse = objectMapper.readValue(result.response.contentAsString, Credentials::class.java)
-        assertThat(loginResponse.refreshToken).isNotNull
-        assertThat(loginResponse.accessToken).isNotNull
-
-        val refreshRequest = RefreshRequest(loginResponse.refreshToken)
+        val loginCookie = result.response.getCookie("refresh_token") ?: error("Refresh cookie was not set")
+        assertThat(result.response.getHeader("Set-Cookie")).contains(
+            "HttpOnly",
+            "SameSite=Strict",
+            "Path=/api/auth",
+            "Secure"
+        )
+        mvc.perform(get("/auth/session").cookie(loginCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.hasRefreshCookie").value(true))
 
         val refreshResult = mvc.perform(
             post("/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(refreshRequest))
+                .cookie(loginCookie)
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.accessToken").exists())
-            .andExpect(jsonPath("$.refreshToken").exists())
+            .andExpect(jsonPath("$.refreshToken").doesNotExist())
             .andExpect(jsonPath("$.user.email").value(user.email))
             .andReturn()
 
-        val rotatedCredentials = objectMapper.readValue(
-            refreshResult.response.contentAsString,
-            Credentials::class.java,
-        )
+        val rotatedCookie =
+            refreshResult.response.getCookie("refresh_token") ?: error("Rotated refresh cookie was not set")
 
         mvc.perform(
             post("/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(refreshRequest))
+                .cookie(loginCookie)
         )
             .andExpect(status().isUnauthorized)
 
         mvc.perform(
             post("/auth/refresh")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(RefreshRequest(rotatedCredentials.refreshToken)))
+                .cookie(rotatedCookie)
         )
             .andExpect(status().isUnauthorized)
+    }
+
+    @Test
+    fun `refresh without a cookie is unauthorized and logout clears cookie idempotently`() {
+        mvc.perform(get("/auth/session"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.hasRefreshCookie").value(false))
+
+        mvc.perform(post("/auth/refresh"))
+            .andExpect(status().isUnauthorized)
+
+        mvc.perform(post("/auth/logout"))
+            .andExpect(status().isNoContent)
+            .andExpect { result ->
+                assertThat(result.response.getHeader("Set-Cookie")).contains(
+                    "refresh_token=",
+                    "Max-Age=0",
+                    "Path=/api/auth"
+                )
+            }
     }
 
     @Test
@@ -205,7 +229,7 @@ class AuthControllerTests {
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.accessToken").exists())
-            .andExpect(jsonPath("$.refreshToken").exists())
+            .andExpect(jsonPath("$.refreshToken").doesNotExist())
             .andExpect(jsonPath("$.user.email").value(email))
             .andExpect(jsonPath("$.user.username").value(username))
     }

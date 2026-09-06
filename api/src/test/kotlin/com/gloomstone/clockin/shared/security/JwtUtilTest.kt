@@ -7,6 +7,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Duration
 
 class JwtUtilTest {
 
@@ -45,31 +46,6 @@ class JwtUtilTest {
     }
 
     @Test
-    fun verifyRefreshToken() {
-        val token = jwtUtil.generateRefreshToken("testUser", "session-id")
-        val claims = jwtUtil.verifyRefreshToken(token.value)
-
-        assertThat(claims.username).isEqualTo("testUser")
-        assertThat(claims.sessionId).isEqualTo("session-id")
-        assertThat(claims.jti).isEqualTo(token.jti)
-    }
-
-    @Test
-    fun generateRefreshToken() {
-        val token = jwtUtil.generateRefreshToken("testUser", "session-id")
-        assertThat(token.value).isNotBlank()
-
-        val algorithm = Algorithm.HMAC512(secret)
-        assertDoesNotThrow {
-            JWT.require(algorithm)
-                .withIssuer(issuer)
-                .withAudience(issuer)
-                .build()
-                .verify(token.value)
-        }
-    }
-
-    @Test
     fun generateResetToken() {
         val token = jwtUtil.generateResetToken("test@example.com")
         assertThat(token).isNotNull
@@ -82,6 +58,20 @@ class JwtUtilTest {
                 .build()
                 .verify(token)
         }
+    }
+
+    @Test
+    fun `reset token lifetime is independent from access token lifetime`() {
+        val shortAccessTokenJwtUtil = JwtUtil(
+            secret,
+            accessTokenLifetime = Duration.ofSeconds(10),
+            resetTokenLifetime = Duration.ofHours(1),
+        )
+
+        val resetToken = JWT.decode(shortAccessTokenJwtUtil.generateResetToken("test@example.com"))
+
+        assertThat(Duration.between(resetToken.issuedAtAsInstant, resetToken.expiresAtAsInstant))
+            .isEqualTo(Duration.ofHours(1))
     }
 
     @Test

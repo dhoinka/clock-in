@@ -8,7 +8,7 @@ import com.gloomstone.clockin.worklog.dto.TimeEntryResponse
 import com.gloomstone.clockin.worklog.dto.WorkdayResponse
 import com.gloomstone.clockin.worklog.util.formatDuration
 import org.springframework.stereotype.Component
-import java.util.Locale
+import java.util.*
 
 @Component
 class WorklogMapper {

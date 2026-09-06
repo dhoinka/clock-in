@@ -7,28 +7,20 @@ import com.gloomstone.clockin.shared.UserPrincipal
 import org.slf4j.LoggerFactory
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
+import java.time.Duration
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import java.util.*
 
 /**
  * JWT utility for token generation and verification.
  * 
- * Handles creation and validation of access tokens, refresh tokens, and reset tokens.
+ * Handles creation and validation of access and reset tokens.
  */
-class JwtUtil(private val secret: String) {
-
-    data class GeneratedRefreshToken(
-        val value: String,
-        val jti: String,
-        val expiresAt: Instant,
-    )
-
-    data class RefreshTokenClaims(
-        val username: String,
-        val sessionId: String,
-        val jti: String,
-    )
+class JwtUtil(
+    private val secret: String,
+    private val accessTokenLifetime: Duration = Duration.ofMinutes(15),
+    private val resetTokenLifetime: Duration = Duration.ofHours(1),
+) {
 
     companion object {
         private val logger = LoggerFactory.getLogger(JwtUtil::class.java)
@@ -36,12 +28,11 @@ class JwtUtil(private val secret: String) {
         private const val ISSUER = "gloomstone.com"
         private const val TOKEN_TYPE = "token_type"
         private const val ACCESS_TOKEN = "access"
-        private const val REFRESH_TOKEN = "refresh"
         private const val RESET_TOKEN = "reset"
 
-        private fun accessTokenBuilder(): JWTCreator.Builder {
+        private fun expiringTokenBuilder(lifetime: Duration): JWTCreator.Builder {
             return tokenBuilder()
-                .withExpiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+                .withExpiresAt(Instant.now().plus(lifetime))
         }
 
         private fun tokenBuilder(): JWTCreator.Builder {
@@ -92,45 +83,10 @@ class JwtUtil(private val secret: String) {
         }
     }
 
-    fun verifyRefreshToken(token: String): RefreshTokenClaims {
-        val cleanToken = extractToken(token)
-
-        val algorithm = Algorithm.HMAC512(secret)
-        val verifier = JWT.require(algorithm)
-            .withIssuer(ISSUER)
-            .withAudience(ISSUER)
-            .withClaim(TOKEN_TYPE, REFRESH_TOKEN)
-            .build()
-        val jwt = verifier.verify(cleanToken)
-
-        val username = jwt.getClaim("username").asString()
-            ?: throw IllegalArgumentException("Username claim is missing")
-        val sessionId = jwt.getClaim("session_id").asString()
-            ?: throw IllegalArgumentException("Session claim is missing")
-        val jti = jwt.id ?: throw IllegalArgumentException("JWT ID is missing")
-
-        return RefreshTokenClaims(username, sessionId, jti)
-    }
-
-    fun generateRefreshToken(username: String, sessionId: String): GeneratedRefreshToken {
-        val algorithm = Algorithm.HMAC512(secret)
-        val jti = UUID.randomUUID().toString()
-        val expiresAt = Instant.now().plus(7, ChronoUnit.DAYS)
-
-        val value = tokenBuilder()
-            .withJWTId(jti)
-            .withExpiresAt(expiresAt)
-            .withClaim(TOKEN_TYPE, REFRESH_TOKEN)
-            .withClaim("username", username)
-            .withClaim("session_id", sessionId)
-            .sign(algorithm)
-        return GeneratedRefreshToken(value, jti, expiresAt)
-    }
-
     fun generateAccessToken(user: Map<String, *>): String {
         val algorithm = Algorithm.HMAC512(secret)
 
-        return accessTokenBuilder()
+        return expiringTokenBuilder(accessTokenLifetime)
             .withClaim(TOKEN_TYPE, ACCESS_TOKEN)
             .withClaim("user", user)
             .sign(algorithm)
@@ -138,7 +94,7 @@ class JwtUtil(private val secret: String) {
 
     fun generateResetToken(email: String): String {
         val algorithm = Algorithm.HMAC512(secret)
-        return accessTokenBuilder()
+        return expiringTokenBuilder(resetTokenLifetime)
             .withClaim(TOKEN_TYPE, RESET_TOKEN)
             .withClaim("email", email)
             .sign(algorithm)

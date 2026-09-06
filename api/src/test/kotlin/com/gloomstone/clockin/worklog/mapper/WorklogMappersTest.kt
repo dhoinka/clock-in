@@ -1,13 +1,7 @@
 package com.gloomstone.clockin.worklog.mapper
 
 import com.gloomstone.clockin.iam.domain.User
-import com.gloomstone.clockin.worklog.domain.EntryType
-import com.gloomstone.clockin.worklog.domain.Event
-import com.gloomstone.clockin.worklog.domain.EventStatus
-import com.gloomstone.clockin.worklog.domain.EventType
-import com.gloomstone.clockin.worklog.domain.Setting
-import com.gloomstone.clockin.worklog.domain.TimeEntry
-import com.gloomstone.clockin.worklog.domain.Workday
+import com.gloomstone.clockin.worklog.domain.*
 import com.gloomstone.clockin.worklog.dto.EventDto
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test

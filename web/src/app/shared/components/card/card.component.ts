@@ -12,27 +12,51 @@ import {
 import type { ClassValue } from 'clsx';
 
 import { ZardButtonComponent } from '@/shared/components/button/button.component';
-import { ZardIdDirective, ZardStringTemplateOutletDirective } from '@/shared/core';
+import {
+  ZardIdDirective,
+  ZardStringTemplateOutletDirective,
+} from '@/shared/core';
 import { mergeClasses } from '@/shared/utils/merge-classes';
 
-import { cardBodyVariants, cardFooterVariants, cardHeaderVariants, cardVariants } from './card.variants';
+import {
+  cardBodyVariants,
+  cardFooterVariants,
+  cardHeaderVariants,
+  cardVariants,
+} from './card.variants';
 
 @Component({
   selector: 'z-card',
-  imports: [ZardStringTemplateOutletDirective, ZardButtonComponent, ZardIdDirective],
+  imports: [
+    ZardStringTemplateOutletDirective,
+    ZardButtonComponent,
+    ZardIdDirective,
+  ],
   template: `
     <ng-container zardId="card" #z="zardId">
       @let title = zTitle();
       @if (title) {
         <div [class]="headerClasses()" data-slot="card-header">
-          <div class="leading-none font-semibold" [id]="titleId()" data-slot="card-title">
-            <ng-container *zStringTemplateOutlet="title">{{ title }}</ng-container>
+          <div
+            class="leading-none font-semibold"
+            [id]="titleId()"
+            data-slot="card-title"
+          >
+            <ng-container *zStringTemplateOutlet="title">{{
+              title
+            }}</ng-container>
           </div>
 
           @let description = zDescription();
           @if (description) {
-            <div class="text-muted-foreground text-sm" [id]="descriptionId()" data-slot="card-description">
-              <ng-container *zStringTemplateOutlet="description">{{ description }}</ng-container>
+            <div
+              class="text-muted-foreground text-sm"
+              [id]="descriptionId()"
+              data-slot="card-description"
+            >
+              <ng-container *zStringTemplateOutlet="description">{{
+                description
+              }}</ng-container>
             </div>
           }
 
@@ -98,8 +122,12 @@ export class ZardCardComponent {
     return this.zDescription() && baseId ? `${baseId}-description` : null;
   });
 
-  protected readonly classes = computed(() => mergeClasses(cardVariants(), this.class()));
-  protected readonly bodyClasses = computed(() => mergeClasses(cardBodyVariants()));
+  protected readonly classes = computed(() =>
+    mergeClasses(cardVariants(), this.class()),
+  );
+  protected readonly bodyClasses = computed(() =>
+    mergeClasses(cardBodyVariants()),
+  );
   protected readonly footerClasses = computed(() =>
     mergeClasses(cardFooterVariants(), this.zFooterBorder() ? 'border-t' : ''),
   );

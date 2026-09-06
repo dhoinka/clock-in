@@ -2,7 +2,6 @@ package com.gloomstone.clockin.iam.service
 
 import com.gloomstone.clockin.iam.dto.Credentials
 import com.gloomstone.clockin.iam.dto.PasswordRequestReset
-import com.gloomstone.clockin.iam.dto.RefreshRequest
 import com.gloomstone.clockin.iam.mapper.UserMapper
 import com.gloomstone.clockin.shared.exception.AuthenticationException
 import com.gloomstone.clockin.shared.exception.BadRequestException
@@ -23,7 +22,7 @@ class AuthService(
     private val passwordEncoder: PasswordEncoder,
     private val userMapper: UserMapper,
     private val jwtUtil: JwtUtil,
-    private val refreshSessionService: RefreshSessionService,
+    private val sessionService: SessionService,
 ) {
 
     private val logger = LoggerFactory.getLogger(AuthService::class.java)
@@ -52,7 +51,7 @@ class AuthService(
                         "roles" to user.roles.map { it.name }.toTypedArray()
                     )
                 )
-                val refreshToken = refreshSessionService.create(user.id, user.username)
+                val refreshToken = sessionService.create(user.id)
 
                 this.userService.update(user)
 
@@ -69,15 +68,18 @@ class AuthService(
         throw AuthenticationException()
     }
 
-    @Transactional
-    fun refresh(request: RefreshRequest): Credentials {
-        val rawRefreshToken = request.refreshToken ?: throw BadRequestException()
-        val rotation = refreshSessionService.rotate(rawRefreshToken)
+    @Transactional(noRollbackFor = [AuthenticationException::class])
+    fun refresh(rawRefreshToken: String): Credentials {
+        val rotation = sessionService.rotate(rawRefreshToken)
             ?: throw AuthenticationException()
 
         val user = this.userService.findByIdentity(rotation.userId)
             ?.takeIf { it.active }
-            ?: throw AuthenticationException()
+            ?: run {
+                logger.warn("Refresh rejected: session user is missing or inactive")
+                sessionService.revoke(rotation.refreshToken)
+                throw AuthenticationException()
+            }
 
         val accessToken = jwtUtil.generateAccessToken(
             mapOf(
@@ -90,6 +92,10 @@ class AuthService(
         this.userService.update(user)
         logger.info("User session refreshed, user=\"{}\"", user.username)
         return Credentials(userMapper.toDto(user), accessToken, rotation.refreshToken)
+    }
+
+    fun logout(rawRefreshToken: String?) {
+        sessionService.revoke(rawRefreshToken)
     }
 
     fun resetPassword(request: PasswordRequestReset, isAdmin: Boolean = false) {

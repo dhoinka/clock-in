@@ -36,7 +36,7 @@ class Config(private val appConfig: AppConfig) {
     @Bean
     fun jwtUtil(): JwtUtil {
         appConfig.jwtSecret?.let {
-            return JwtUtil(it)
+            return JwtUtil(it, appConfig.accessTokenLifetime, appConfig.resetTokenLifetime)
         }
         throw IllegalStateException("JWT secret is not configured")
     }

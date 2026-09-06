@@ -44,7 +44,7 @@ class WebSecurityConfig {
     fun filterChain(
         http: HttpSecurity,
         corsConfigurationSource: CorsConfigurationSource,
-        jwtAuthenticationConverter: Converter<Jwt, out AbstractAuthenticationToken>
+        jwtAuthenticationConverter: Converter<Jwt, out AbstractAuthenticationToken>,
     ): SecurityFilterChain {
         http
             .cors {
@@ -62,7 +62,8 @@ class WebSecurityConfig {
             .authorizeHttpRequests {
                 // Public endpoints
                 it.requestMatchers("/actuator/health").permitAll()
-                it.requestMatchers("/", "/auth/login", "/auth/signup", "/auth/refresh").permitAll()
+                it.requestMatchers("/", "/auth/login", "/auth/signup", "/auth/refresh", "/auth/logout", "/auth/session")
+                    .permitAll()
                 it.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // All other endpoints require authentication
                 it.anyRequest().authenticated()
