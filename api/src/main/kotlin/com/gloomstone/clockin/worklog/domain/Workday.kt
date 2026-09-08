@@ -1,6 +1,5 @@
 package com.gloomstone.clockin.worklog.domain
 
-import com.gloomstone.clockin.iam.domain.User
 import jakarta.persistence.*
 import java.time.Duration
 import java.time.LocalDate
@@ -9,8 +8,6 @@ import java.time.LocalDate
 @Table(name = "workday")
 data class Workday(
     val date: LocalDate,
-    @ManyToOne
-    val user: User,
     @OneToMany(mappedBy = "workday", fetch = FetchType.EAGER)
     @OrderBy("start NULLS LAST")
     var entries: MutableList<TimeEntry> = mutableListOf(),
@@ -31,7 +28,6 @@ data class Workday(
             Day {
                 id=$id
                 date=$date
-                user="${user.username}"
                 bookings=${entries.size}
                 gross=$gross
                 balance=$balance

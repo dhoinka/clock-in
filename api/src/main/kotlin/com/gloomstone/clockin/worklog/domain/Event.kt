@@ -1,6 +1,5 @@
 package com.gloomstone.clockin.worklog.domain
 
-import com.gloomstone.clockin.iam.domain.User
 import jakarta.persistence.*
 import java.time.LocalDate
 
@@ -18,9 +17,6 @@ data class Event(
     var end: LocalDate? = null,
     @Column(name = "all_day")
     var isAllDay: Boolean = true,
-
-    @ManyToOne
-    var user: User? = null,
 
     @Enumerated(EnumType.STRING)
     var status: EventStatus? = null,

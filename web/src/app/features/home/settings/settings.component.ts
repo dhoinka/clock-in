@@ -1,7 +1,6 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '@/core/services/auth.service';
 import { WorklogService } from '@/core/services/worklog.service';
 import { WorklogSettingsService } from '@/core/services/worklog-settings.service';
 import { WorklogSettings } from '@/core/models/worklog.model';
@@ -29,23 +28,19 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   templateUrl: './settings.component.html',
 })
 export class SettingsComponent implements OnInit {
-  private authService = inject(AuthService);
   private worklogService = inject(WorklogService);
   private worklogSettingsService = inject(WorklogSettingsService);
   private dialogService = inject(ZardDialogService);
   private themeService = inject(ThemeService);
 
-  readonly user = this.authService.user;
   readonly days = DAYS;
 
   readonly tabs = [
-    { value: 'account', label: 'Account' },
     { value: 'booking', label: 'Booking' },
-    { value: 'security', label: 'Security' },
     { value: 'preferences', label: 'Preferences' },
   ];
 
-  activeTab = signal('account');
+  activeTab = signal('booking');
   readonly theme = this.themeService.theme;
 
   // Settings state
@@ -137,26 +132,12 @@ export class SettingsComponent implements OnInit {
     });
   }
 
-  async deleteAllEntries(): Promise<void> {
+  private async deleteAllEntries(): Promise<void> {
     try {
       await this.worklogService.deleteAllWorkdays();
-    } catch (error) {
-      console.error('Error deleting all entries:', error);
+    } catch {
+      this.settingsError.set('Failed to delete time entries');
     }
-  }
-
-  getName(): string {
-    const user = this.user();
-    return user?.name || user?.username || '';
-  }
-
-  getInitials(): string {
-    return this.getName()
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
   }
 
   setTheme(t: 'light' | 'dark' | 'system'): void {

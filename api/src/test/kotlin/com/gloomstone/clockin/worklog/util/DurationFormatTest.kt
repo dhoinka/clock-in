@@ -4,26 +4,19 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.time.Duration
 
-
 class DurationFormatTest {
     @Test
-    fun testFormatDuration() {
-        val duration = Duration.ofHours(8)
-        val result = formatDuration(duration)
-        assertThat(result).isEqualTo("8h")
+    fun `formats whole hours`() {
+        assertThat(formatDuration(Duration.ofHours(8))).isEqualTo("8h")
     }
 
     @Test
-    fun testFormatDurationMinutes() {
-        val duration = Duration.ofMinutes(30)
-        val result = formatDuration(duration)
-        assertThat(result).isEqualTo("30m")
+    fun `formats whole minutes`() {
+        assertThat(formatDuration(Duration.ofMinutes(30))).isEqualTo("30m")
     }
 
     @Test
-    fun testFormatDurationHoursMinutes() {
-        val duration = Duration.ofHours(8).plusMinutes(30)
-        val result = formatDuration(duration)
-        assertThat(result).isEqualTo("8h 30m")
+    fun `formats hours and minutes`() {
+        assertThat(formatDuration(Duration.ofHours(8).plusMinutes(30))).isEqualTo("8h 30m")
     }
 }

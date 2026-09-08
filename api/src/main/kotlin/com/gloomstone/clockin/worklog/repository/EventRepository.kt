@@ -1,6 +1,5 @@
 package com.gloomstone.clockin.worklog.repository
 
-import com.gloomstone.clockin.iam.domain.User
 import com.gloomstone.clockin.worklog.domain.Event
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
@@ -9,13 +8,12 @@ import java.time.LocalDate
 
 @Repository
 interface EventRepository : JpaRepository<Event, Long> {
-    fun findAllByUser(user: User): List<Event>
+    fun findAllByOrderByStart(): List<Event>
 
-    @Query("from Event e where ?1 >= e.start  and ?2 <= e.end and e.user = ?3")
-    fun findAllByStartGreaterThanEqualAndEndLessThanEqualAndUser(
+    @Query("from Event e where ?1 >= e.start and ?2 <= e.end")
+    fun findAllByStartGreaterThanEqualAndEndLessThanEqual(
         start: LocalDate,
-        end: LocalDate,
-        user: User
+        end: LocalDate
     ): List<Event>
 
 }

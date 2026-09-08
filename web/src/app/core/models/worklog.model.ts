@@ -42,7 +42,6 @@ export interface DayDto {
   gross: string | null;
   balance: string | null;
   workday: boolean;
-  user: string | null;
 }
 
 export interface Workday {
@@ -51,7 +50,6 @@ export interface Workday {
   gross: string;
   balance: string;
   workday: boolean;
-  user?: string;
 }
 
 export interface WorklogUpdateRequest {
@@ -78,7 +76,6 @@ export interface Event {
   start: Date;
   end: Date;
   allDay: boolean;
-  user?: string;
 }
 
 export const holidaySchema = z.object({
@@ -90,7 +87,6 @@ export const holidaySchema = z.object({
 export type Holiday = z.infer<typeof holidaySchema>;
 
 export interface Stat {
-  username: string | null;
   avgStart: number | null;
   avgEnd: number | null;
 }

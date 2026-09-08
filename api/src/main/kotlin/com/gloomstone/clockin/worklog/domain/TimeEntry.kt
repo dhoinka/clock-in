@@ -1,6 +1,5 @@
 package com.gloomstone.clockin.worklog.domain
 
-import com.gloomstone.clockin.iam.domain.User
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
@@ -10,9 +9,6 @@ class TimeEntry {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     var type: EntryType = EntryType.STANDARD
-
-    @ManyToOne
-    var user: User? = null
 
     @ManyToOne
     var workday: Workday? = null
@@ -31,22 +27,19 @@ class TimeEntry {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
 
-    constructor(start: LocalDateTime, workday: Workday, user: User) {
+    constructor(start: LocalDateTime, workday: Workday) {
         this.start = start
         this.workday = workday
-        this.user = user
     }
 
-    constructor(start: LocalDateTime, end: LocalDateTime, workday: Workday, user: User) {
+    constructor(start: LocalDateTime, end: LocalDateTime, workday: Workday) {
         this.start = start
         this.end = end
-        this.user = user
         this.workday = workday
     }
 
-    constructor(duration: String, type: EntryType, workday: Workday, user: User) {
+    constructor(duration: String, type: EntryType, workday: Workday) {
         this.duration = duration
-        this.user = user
         this.workday = workday
         this.type = type
     }
@@ -59,7 +52,6 @@ class TimeEntry {
                 start=$start
                 end=$end
                 duration=$duration
-                user="${user?.username}",
             }
         """.trimIndent()
     }

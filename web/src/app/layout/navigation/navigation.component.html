@@ -2,7 +2,7 @@
   class="flex flex-col min-h-screen h-full p-6 pb-3 pr-7 lg:w-72 w-52 pt-0 lg:pt-6"
 >
   <div class="flow-none">
-    <a routerLink="/home" (click)="onLinkClick()">
+    <a routerLink="/" (click)="onLinkClick()">
       <img
         src="/assets/logo-gloomstone-invert-sm.svg"
         width="200"
@@ -23,7 +23,7 @@
             [routerLink]="item.link"
             (click)="onLinkClick()"
             routerLinkActive="text-primary hover:text-primary"
-            [routerLinkActiveOptions]="{ exact: item.link === '/home' }"
+            [routerLinkActiveOptions]="{ exact: item.link === '/' }"
             class="flex items-center"
           >
             <ng-icon [name]="item.icon" class="h-6 w-6" />
@@ -35,38 +35,15 @@
   </div>
 
   <div class="flex-none">
-    <ul class="list">
-      <zard-separator class="my-4" />
-      <li
-        class="list-item my-4 text-muted-foreground hover:text-foreground text-base transition-colors"
-      >
-        <z-dropdown-menu>
-          <div dropdown-trigger class="flex items-center cursor-pointer w-full">
-            <z-avatar
-              class="mr-3"
-              [zSize]="32"
-              [zAlt]="getName()"
-              [zFallback]="getInitials()"
-              zShape="circle"
-            />
-            <div class="flex flex-col">
-              <span class="text-sm font-medium">{{ getName() }}</span>
-              <span class="text-xs text-muted-foreground">{{
-                user()?.email
-              }}</span>
-            </div>
-          </div>
-
-          <z-dropdown-menu-item (click)="navigateToSettings()">
-            <ng-icon name="lucideSettings" class="mr-2 h-4 w-4" />
-            Settings
-          </z-dropdown-menu-item>
-          <z-dropdown-menu-item (click)="logout()">
-            <ng-icon name="lucideLogOut" class="mr-2 h-4 w-4" />
-            Sign Out
-          </z-dropdown-menu-item>
-        </z-dropdown-menu>
-      </li>
-    </ul>
+    <zard-separator class="my-4" />
+    <a
+      routerLink="/settings"
+      (click)="onLinkClick()"
+      routerLinkActive="text-primary hover:text-primary"
+      class="flex items-center py-4 text-muted-foreground hover:text-foreground text-base transition-colors"
+    >
+      <ng-icon name="lucideSettings" class="h-6 w-6" />
+      <span class="ml-3">Settings</span>
+    </a>
   </div>
 </div>

@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { format, parseISO } from 'date-fns';
 import { Event, Holiday, holidaySchema } from '../models/worklog.model';
-import { z } from 'zod';
 
 interface EventDto {
   id?: number;
@@ -13,7 +12,6 @@ interface EventDto {
   start: string;
   end: string;
   allDay?: boolean;
-  user?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -63,7 +61,6 @@ export class EventService {
       start: parseISO(dto.start),
       end: parseISO(dto.end),
       allDay: dto.allDay ?? true,
-      user: dto.user,
     };
   }
 
@@ -77,7 +74,6 @@ export class EventService {
       start: format(event.start, "yyyy-MM-dd'T'HH:mm:ss"),
       end: format(event.end, "yyyy-MM-dd'T'HH:mm:ss"),
       allDay: event.allDay,
-      user: event.user,
     };
   }
 }

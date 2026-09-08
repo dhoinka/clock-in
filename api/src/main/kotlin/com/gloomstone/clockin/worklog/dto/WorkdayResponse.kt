@@ -6,5 +6,4 @@ data class WorkdayResponse(
     var gross: String? = null,
     var balance: String? = null,
     var isWorkday: Boolean = false,
-    var user: String? = null,
 )

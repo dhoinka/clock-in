@@ -5,7 +5,7 @@ import {
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
 import { provideIcons } from '@ng-icons/core';
 import {
   lucideCalendar,
@@ -19,7 +19,6 @@ import {
   lucideHeart,
   lucideHouse,
   lucideList,
-  lucideLogOut,
   lucideMenu,
   lucidePlay,
   lucidePlus,
@@ -32,15 +31,13 @@ import {
 
 import { routes } from './app.routes';
 import { provideZard } from '@/shared/core/provider/providezard';
-import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { ThemeService } from './core/services/theme.service';
-import { AuthService } from './core/services/auth.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(),
     provideIcons({
       lucideCalendar,
       lucideCheck,
@@ -53,7 +50,6 @@ export const appConfig: ApplicationConfig = {
       lucideHeart,
       lucideHouse,
       lucideList,
-      lucideLogOut,
       lucideMenu,
       lucidePlay,
       lucidePlus,
@@ -68,6 +64,5 @@ export const appConfig: ApplicationConfig = {
       const themeService = inject(ThemeService);
       themeService.loadTheme();
     }),
-    provideAppInitializer(() => inject(AuthService).initialize()),
   ],
 };

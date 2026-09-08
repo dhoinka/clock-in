@@ -15,7 +15,7 @@ class EventMapper {
         start = event.start,
         end = event.end,
         status = event.status?.value.orEmpty(),
-        username = event.user?.username,
+        isAllDay = event.isAllDay,
     )
 
     fun toEntity(request: EventDto) = Event(
@@ -25,5 +25,6 @@ class EventMapper {
         start = request.start,
         end = request.end,
         status = request.status?.let(EventStatus::fromValue),
+        isAllDay = request.isAllDay,
     )
 }

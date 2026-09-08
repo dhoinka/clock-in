@@ -33,6 +33,5 @@ class WorklogMapper {
         gross = workday.gross?.let(::formatDuration),
         balance = workday.balance?.let(::formatDuration),
         isWorkday = workday.isWorkday,
-        user = workday.user.username,
     )
 }

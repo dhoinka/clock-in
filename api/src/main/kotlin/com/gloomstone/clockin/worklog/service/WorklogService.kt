@@ -1,9 +1,5 @@
 package com.gloomstone.clockin.worklog.service
 
-import com.gloomstone.clockin.iam.domain.User
-import com.gloomstone.clockin.iam.service.UserService
-import com.gloomstone.clockin.shared.exception.BadRequestException
-import com.gloomstone.clockin.shared.exception.NotFoundException
 import com.gloomstone.clockin.worklog.domain.*
 import com.gloomstone.clockin.worklog.dto.UpdateWorkdayRequest
 import com.gloomstone.clockin.worklog.repository.DayRepository
@@ -30,27 +26,21 @@ class WorklogService(
     private val snapshotService: SnapshotService,
     private val settingService: SettingService,
     private val eventService: EventService,
-    private val holidayService: HolidayService,
-    private val userService: UserService
+    private val holidayService: HolidayService
 ) {
     private val logger = LoggerFactory.getLogger(WorklogService::class.java)
     private var clock = Clock.system(ZoneId.of("Europe/Berlin"))
 
-    /**
-     * Books a day for a user.
-     * @param username The user for whom the booking is to be made.
-     * @return The booking status after the operation.
-     */
+    /** Records the next check-in or check-out for the local worklog. */
     @Transactional
-    fun recordEntry(username: String): Status {
-        val user = userService.findByIdentity(username) ?: throw BadRequestException("User not found")
+    fun recordEntry(): Status {
         val now = LocalDateTime.now(clock)
-        logger.info("user booked, user=\"{}\"", user.username)
+        logger.info("time entry recorded")
 
-        val day = dayRepository.findByDateAndUser(now.toLocalDate(), user) ?: createDay(now.toLocalDate(), user)
+        val day = dayRepository.findByDate(now.toLocalDate()) ?: createDay(now.toLocalDate())
 
         if (day.entries.isEmpty() || day.entries.last().end != null) {
-            val timeEntry = TimeEntry(now, day, user)
+            val timeEntry = TimeEntry(now, day)
             addEntry(day, timeEntry)
         } else {
             val last = day.entries.last()
@@ -58,15 +48,14 @@ class WorklogService(
             logger.info("write booking, booking={}", last.id)
             timeEntryRepository.save(last)
         }
-        logger.info("user booked, user=\"{}\"", user.username)
+        logger.info("time entry recorded")
         return calcStatus(day)
     }
 
     @Transactional
-    fun update(request: UpdateWorkdayRequest, username: String): Workday {
+    fun update(request: UpdateWorkdayRequest): Workday {
         val date = request.date
-        val user = this.userService.findByIdentity(username) ?: throw BadRequestException("User not found")
-        val day = dayRepository.findByDateAndUser(date, user) ?: createDay(date, user)
+        val day = dayRepository.findByDate(date) ?: createDay(date)
 
         timeEntryRepository.deleteAll(day.entries)
 
@@ -75,13 +64,13 @@ class WorklogService(
         for (entry in request.entries) {
             if (entry.type == EntryType.STANDARD.value) {
                 if (entry.end != null) {
-                    newLogEntries.add(TimeEntry(entry.start!!, entry.end!!, day, user))
+                    newLogEntries.add(TimeEntry(entry.start!!, entry.end!!, day))
                 } else {
-                    newLogEntries.add(TimeEntry(entry.start!!, day, user))
+                    newLogEntries.add(TimeEntry(entry.start!!, day))
                 }
             } else if (entry.type == EntryType.CORRECTION.value) {
                 val duration = entry.duration!!
-                newLogEntries.add(TimeEntry(duration, EntryType.CORRECTION, day, user))
+                newLogEntries.add(TimeEntry(duration, EntryType.CORRECTION, day))
             }
         }
         val sortedEntries = getSortedList(newLogEntries)
@@ -91,12 +80,12 @@ class WorklogService(
         day.gross = calcGross(day)
 
 
-        snapshotService.createSnapshot(date, user)
-        calcBalance(user)
+        snapshotService.createSnapshot(date)
+        calcBalance()
 
 
         return dayRepository.save(day).also {
-            logger.info("day updated, day={} user=\"{}\"", day.date, user.username)
+            logger.info("day updated, day={}", day.date)
         }
     }
 
@@ -107,10 +96,10 @@ class WorklogService(
     }
 
     @Transactional
-    fun createDay(date: LocalDate, user: User): Workday {
-        val workday = Workday(date, user)
+    fun createDay(date: LocalDate): Workday {
+        val workday = Workday(date)
         return dayRepository.save(workday).also {
-            logger.info("day created, date={} user=\"{}\"", date, user.username)
+            logger.info("day created, date={}", date)
         }
     }
 
@@ -121,29 +110,24 @@ class WorklogService(
 
         timeEntryRepository.save(timeEntry)
         dayRepository.save(workday)
-        logger.info(
-            "Booking was added to day, day={} start={} end={} user=\"{}\"",
-            workday.date, timeEntry.start, timeEntry.end, timeEntry.user?.username
-        )
+        logger.info("Booking was added to day, day={} start={} end={}", workday.date, timeEntry.start, timeEntry.end)
     }
 
     @Transactional
-    fun getBalance(username: String): Status {
-        val user = this.userService.findByIdentity(username) ?: throw BadRequestException("User not found")
+    fun getBalance(): Status {
         val now = LocalDate.now(clock)
-        val workday = dayRepository.findByDateAndUser(now, user) ?: Workday(now, user)
+        val workday = dayRepository.findByDate(now) ?: Workday(now)
         return calcStatus(workday)
     }
 
     @Transactional
-    fun getEntries(month: LocalDate, username: String): List<Workday> {
-        val user = this.userService.findByIdentity(username) ?: throw BadRequestException("User not found")
+    fun getEntries(month: LocalDate): List<Workday> {
         val start = month.withDayOfMonth(1)
         val end = month.with(TemporalAdjusters.lastDayOfMonth())
 
-        calcBalance(user)
+        calcBalance()
 
-        val days = dayRepository.findAllByDateGreaterThanEqualAndDateLessThanEqualAndUserOrderByDate(start, end, user)
+        val days = dayRepository.findAllByDateGreaterThanEqualAndDateLessThanEqualOrderByDate(start, end)
 
         val map: MutableMap<String, Workday?> = TreeMap()
         val dist = Period.between(start, end).days
@@ -160,28 +144,26 @@ class WorklogService(
                 map[key] = i
             }
         }
-        setEmptyDays(map, user)
+        setEmptyDays(map)
         return ArrayList(map.values.filterNotNull())
     }
 
     @Transactional
-    fun getEntries(typeStr: String?, username: String): List<TimeEntry> {
-        val user = this.userService.findByIdentity(username) ?: throw BadRequestException("User not found")
+    fun getEntries(typeStr: String?): List<TimeEntry> {
         val type = if (typeStr == "correction") {
             EntryType.CORRECTION
         } else {
             EntryType.STANDARD
         }
 
-        return timeEntryRepository.findAllByTypeAndUser(type, user)
+        return timeEntryRepository.findAllByType(type)
     }
 
     @Transactional
-    fun getAllEntries(username: String): List<Workday> {
-        val user = this.userService.findByIdentity(username) ?: throw BadRequestException("User not found")
-        calcBalance(user)
+    fun getAllEntries(): List<Workday> {
+        calcBalance()
 
-        val days = dayRepository.findAllByUserOrderByDate(user)
+        val days = dayRepository.findAllByOrderByDate()
         if (days.isEmpty()) {
             return emptyList()
         }
@@ -205,19 +187,16 @@ class WorklogService(
             val key = i.date.format(DateTimeFormatter.ofPattern(DATE_FORMAT))
             map[key] = i
         }
-        setEmptyDays(map, user)
+        setEmptyDays(map)
 
         return map.values.toMutableList().filterNotNull()
     }
 
-    private fun setEmptyDays(
-        map: MutableMap<String, Workday?>,
-        user: User
-    ) {
+    private fun setEmptyDays(map: MutableMap<String, Workday?>) {
         map.forEach { (key: String, value: Workday?) ->
             if (value == null) {
                 val date = LocalDate.parse(key, DateTimeFormatter.ofPattern(DATE_FORMAT))
-                val d = Workday(date, user)
+                val d = Workday(date)
                 d.isWorkday = isWorkday(d)
                 map[key] = d
             }
@@ -250,25 +229,19 @@ class WorklogService(
     }
 
     @Transactional
-    fun delete(id: Long, username: String) {
-        val user = userService.findByIdentity(username) ?: throw BadRequestException("User not found")
+    fun delete(id: Long) {
         val entry = timeEntryRepository.findById(id).orElseThrow()
-        if (entry.user?.id != user.id) {
-            throw NotFoundException("Time entry not found")
-        }
         timeEntryRepository.delete(entry)
 
-        val snapshot = snapshotService.findOrCreate(user)
-        snapshotService.delete(snapshot)
+        snapshotService.delete()
     }
 
     @Transactional
-    fun deleteAll(username: String) {
-        val user = this.userService.findByIdentity(username) ?: throw BadRequestException("User not found")
-        timeEntryRepository.deleteAllByUser(user)
-        dayRepository.deleteAllByUser(user)
-        snapshotService.delete(user)
-        logger.info("All bookings and days deleted, user=\"{}\"", user.username)
+    fun deleteAll() {
+        timeEntryRepository.deleteAll()
+        dayRepository.deleteAll()
+        snapshotService.delete()
+        logger.info("All bookings and days deleted")
     }
 
 
@@ -282,7 +255,7 @@ class WorklogService(
      * 1. Calculates the balance for the given day.
      * 2. Checks if there are any bookings for the day.
      * 3. If there are no bookings, it returns a BookingStatus with false for checkedIn, zero duration for gross and balance.
-     * 4. If there are bookings, it checks if the user is checked in.
+     * 4. If there are bookings, it checks whether the worklog is checked in.
      * 5. Calculates the gross duration for the day.
      * 6. Returns a BookingStatus with the checkedIn status, gross duration, and the balance for the day.
      */
@@ -295,7 +268,7 @@ class WorklogService(
                 Duration.ZERO
             )
         }
-        val foundDay = (calcBalance(workday.user).find { it.date == workday.date } ?: workday)
+        val foundDay = (calcBalance().find { it.date == workday.date } ?: workday)
         val checkedIn = isCheckedIn(foundDay)
 
         return Status(
@@ -312,7 +285,7 @@ class WorklogService(
      * @return The gross duration for the given day.
      *
      * The method performs the following steps:
-     * 1. Retrieves the user and break time from the settings.
+     * 1. Retrieves the break time from the settings.
      * 2. Retrieves the bookings for the day.
      * 3. If there are no bookings, it returns a duration of zero.
      * 4. If there are bookings, it calculates the duration for each booking and adds them to a list.
@@ -321,8 +294,7 @@ class WorklogService(
      * 7. Returns the calculated gross duration.
      */
     private fun calcGross(workday: Workday): Duration {
-        val user = workday.user
-        val breakTime = settingService.findByUser(user).breakTime
+        val breakTime = settingService.get().breakTime
         val entries = workday.entries
         val now = LocalDateTime.now(clock)
         val startOfDay = now.with(LocalTime.MIDNIGHT)
@@ -358,45 +330,41 @@ class WorklogService(
     }
 
     /**
-     * This method calculates the balance for a given user.
-     *
-     * @param user The user for whom the balance is to be calculated.
+     * This method calculates the balance for the local worklog.
      * @return The list of days with their calculated balances.
      *
      * The method performs the following steps:
-     * 1. Retrieves the user's settings and working hours.
-     * 2. Retrieves the snapshot for the user.
-     * 3. Retrieves the days for the user based on the snapshot.
+     * 1. Retrieves the settings and working hours.
+     * 2. Retrieves the balance snapshot.
+     * 3. Retrieves the days based on the snapshot.
      * 4. Calculates the days and stores them in a map.
      * 5. Iterates over the days and updates the map with the day's date as the key and the day as the value.
      * 6. Iterates over the entries in the map. For each entry:
      *    - If the value is null, a new day is created and added to the map.
      *    - The gross duration for the day is calculated.
      *    - Checks if the day is a workday and if there are bookings for the day.
-     *    - If there are bookings and the user is not checked in, the balance for the day is calculated.
-     *    - If there are no bookings or the user is checked in, the balance is set based on the working hours and the previous day's balance.
+     *    - If there are bookings and the worklog is not checked in, the balance for the day is calculated.
+     *    - If there are no bookings or the worklog is checked in, the balance is set based on the working hours and the previous day's balance.
      *    - If there is a correction, the balance is updated with the correction duration.
      *    - If the day is the same as the snapshot day, the balance is set to the snapshot duration.
      * 7. Saves all the days in the repository.
      * 8. Returns a list of all the days with their calculated balances.
      */
     @Transactional
-    fun calcBalance(user: User): List<Workday> {
-        val settings = settingService.findByUser(user)
+    fun calcBalance(): List<Workday> {
+        val settings = settingService.get()
 
         val workingHours = settings.workingHours
         val now = LocalDate.now(clock)
 
-        val snapshot = snapshotService.findOrCreate(user)
+        val snapshot = snapshotService.get()
 
         logger.debug("found snapshot {}", snapshot)
 
         val workdays: List<Workday> = if (snapshot.workday == null) {
-            dayRepository.findAllByUserOrderByDate(user)
+            dayRepository.findAllByOrderByDate()
         } else {
-            snapshot.workday?.date.let {
-                dayRepository.findAllByDateGreaterThanEqualAndUserOrderByDate(it, user)
-            }
+            dayRepository.findAllByDateGreaterThanEqualOrderByDate(requireNotNull(snapshot.workday?.date))
         }
 
         val localDateDayMap = calcDays(workdays)
@@ -413,7 +381,7 @@ class WorklogService(
         for (entry in localDateDayMap.entries) {
             var value = entry.value
             if (value == null) {
-                value = createDay(entry.key, user)
+                value = createDay(entry.key)
 
                 localDateDayMap[entry.key] = value
             }
@@ -504,7 +472,7 @@ class WorklogService(
     private fun isWorkday(workday: Workday): Boolean {
         // Mo Di Mi Do Fr Sa So
         // 1  2  4  8  16 32 64
-        val settings = settingService.findByUser(workday.user)
+        val settings = settingService.get()
         val workDay =
             settings.workingDays and 2.0.pow((workday.date.dayOfWeek.value - 1).toDouble()).toInt().toLong() != 0L
         if (!workDay) {
@@ -514,9 +482,7 @@ class WorklogService(
         if (holiday != null) {
             return false
         }
-        val event = eventService.findByDateAndUsername(
-            workday.date, workday.user.username
-        )
+        val event = eventService.findByDate(workday.date)
         return event.isEmpty()
     }
 

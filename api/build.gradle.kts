@@ -16,8 +16,6 @@ dependencies {
     // Spring Boot Starters
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jackson")
@@ -28,8 +26,6 @@ dependencies {
     runtimeOnly("com.h2database:h2")
 
     // Third-party Libraries
-    implementation("com.auth0:java-jwt:4.6.1")
-    implementation("com.aventrix.jnanoid:jnanoid:2.0.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     // Kotlin
@@ -45,7 +41,7 @@ dependencies {
 }
 
 
-group = "com.gloomstone.iam"
+group = "com.gloomstone.clockin"
 version = "0.0.1-SNAPSHOT"
 
 java {
