@@ -28,7 +28,7 @@ dependencies {
     runtimeOnly("com.h2database:h2")
 
     // Third-party Libraries
-    implementation("com.auth0:java-jwt:4.6.0")
+    implementation("com.auth0:java-jwt:4.6.1")
     implementation("com.aventrix.jnanoid:jnanoid:2.0.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
