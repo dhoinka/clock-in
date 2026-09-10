@@ -11,11 +11,15 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 
 class TestDataServiceTest {
     private val entries: TimeEntryRepository = mock()
     private val days: DayRepository = mock()
-    private val service = TestDataService(entries, days)
+    private val clock = Clock.fixed(Instant.parse("2026-09-08T12:00:00Z"), ZoneOffset.UTC)
+    private val service = TestDataService(entries, days, clock)
 
     @Test
     fun `creates thirty global workdays when the worklog is empty`() {

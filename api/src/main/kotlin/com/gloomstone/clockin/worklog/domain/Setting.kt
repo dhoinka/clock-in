@@ -4,7 +4,7 @@ import jakarta.persistence.*
 import java.time.Duration
 
 @Entity
-data class Setting(
+class Setting(
     var workingHours: Duration,
     var breakTime: Duration,
     var workingDays: Long = 0,

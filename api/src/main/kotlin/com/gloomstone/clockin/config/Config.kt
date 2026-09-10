@@ -9,12 +9,17 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory
 import org.springframework.transaction.annotation.EnableTransactionManagement
 import org.springframework.web.client.RestTemplate
 import tools.jackson.databind.DeserializationFeature
+import java.time.Clock
+import java.time.ZoneId
 
 
 @Configuration
 @EnableTransactionManagement
 @EnableConfigurationProperties
 class Config {
+
+    @Bean
+    fun clock(): Clock = Clock.system(ZoneId.of("Europe/Berlin"))
 
     @Bean
     fun restTemplate(): RestTemplate {

@@ -10,6 +10,7 @@ import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
+import java.time.Clock
 import java.time.LocalDateTime
 
 @Service
@@ -17,6 +18,7 @@ import java.time.LocalDateTime
 class TestDataService(
     private val timeEntryRepository: TimeEntryRepository,
     private val dayRepository: DayRepository,
+    private val clock: Clock,
 ) : ApplicationRunner {
     private val logger = LoggerFactory.getLogger(TestDataService::class.java)
 
@@ -28,7 +30,7 @@ class TestDataService(
     fun createTestData() {
         if (dayRepository.count() > 0) return
 
-        var now = LocalDateTime.now().minusDays(30).withHour(8).withDayOfMonth(6)
+        var now = LocalDateTime.now(clock).minusDays(30).withHour(8).withDayOfMonth(6)
         repeat(30) {
             createFullDay(now)
             now = now.plusDays(1)

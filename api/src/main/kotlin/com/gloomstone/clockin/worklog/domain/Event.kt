@@ -4,7 +4,7 @@ import jakarta.persistence.*
 import java.time.LocalDate
 
 @Entity
-data class Event(
+class Event(
     var title: String? = null,
 
     @Enumerated(EnumType.STRING)
@@ -24,6 +24,4 @@ data class Event(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
-
-
-    )
+)

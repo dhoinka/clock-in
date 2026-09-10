@@ -11,8 +11,12 @@ import java.time.Duration
 
 @Service
 class SettingService(private val repository: SettingRepository) {
-    fun get(): Setting = repository.findById(1).orElseGet { repository.save(Setting(Duration.ofHours(8), Duration.ofMinutes(30), 31L)) }
-    @Transactional fun update(request: SettingResponse): Setting {
+    fun get(): Setting = repository.findById(1).orElseGet {
+        repository.save(Setting(Duration.ofHours(8), Duration.ofMinutes(30), 31L))
+    }
+
+    @Transactional
+    fun update(request: SettingResponse): Setting {
         val setting = get()
         setting.workingHours = request.workingHours.toDuration() ?: throw BadRequestException("Invalid working hours")
         setting.breakTime = request.breakTime.toDuration() ?: throw BadRequestException("Invalid break time")

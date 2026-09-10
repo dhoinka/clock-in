@@ -10,7 +10,8 @@ class TimeEntry {
     @Column(nullable = false)
     var type: EntryType = EntryType.STANDARD
 
-    @ManyToOne
+    @ManyToOne(optional = false)
+    @JoinColumn(nullable = false)
     var workday: Workday? = null
 
     // TimeEntry

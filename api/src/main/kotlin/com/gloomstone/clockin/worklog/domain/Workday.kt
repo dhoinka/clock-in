@@ -6,7 +6,8 @@ import java.time.LocalDate
 
 @Entity
 @Table(name = "workday")
-data class Workday(
+class Workday(
+    @Column(nullable = false, unique = true)
     val date: LocalDate,
     @OneToMany(mappedBy = "workday", fetch = FetchType.EAGER)
     @OrderBy("start NULLS LAST")

@@ -40,7 +40,7 @@ class HolidayService(private val restTemplate: RestTemplate) {
         val allStates = dto.feiertag?.laender?.size == 16
         holiday.isAllStates = allStates
         dto.feiertag?.laender?.forEach {
-            when (it.abkuerzung!!) {
+            when (it.abkuerzung) {
                 "BW" -> holiday.isBw = true
                 "BY" -> holiday.isBy = true
                 "BE" -> holiday.isBe = true

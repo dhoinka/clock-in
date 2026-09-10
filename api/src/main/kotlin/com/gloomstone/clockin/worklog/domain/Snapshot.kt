@@ -3,7 +3,7 @@ package com.gloomstone.clockin.worklog.domain
 import jakarta.persistence.*
 
 @Entity
-data class Snapshot(
+class Snapshot(
 
     @ManyToOne
     var workday: Workday? = null,

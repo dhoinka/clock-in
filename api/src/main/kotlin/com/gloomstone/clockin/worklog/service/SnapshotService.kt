@@ -19,7 +19,8 @@ class SnapshotService(
     @Transactional
     fun createSnapshot(date: LocalDate) {
         val snapshot = get()
-        if (snapshot.workday != null && date.isBefore(requireNotNull(snapshot.workday).date)) {
+        val snapshotWorkday = snapshot.workday
+        if (snapshotWorkday != null && date.isBefore(snapshotWorkday.date)) {
             snapshot.workday = null
             repository.save(snapshot)
             return

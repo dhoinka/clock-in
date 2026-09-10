@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Duration
+import java.time.Clock
 
 @WebMvcTest(WorklogController::class)
 class WorklogControllerTest {
@@ -23,6 +24,7 @@ class WorklogControllerTest {
     @MockitoBean lateinit var service: WorklogService
     @MockitoBean lateinit var mapper: WorklogMapper
     @MockitoBean lateinit var stats: StatService
+    @MockitoBean lateinit var clock: Clock
 
     @Test
     fun `status endpoint is available without authentication`() {
