@@ -13,7 +13,6 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 import java.util.*
-import java.util.Objects.isNull
 import kotlin.math.pow
 
 /**
@@ -63,13 +62,15 @@ class WorklogService(
 
         for (entry in request.entries) {
             if (entry.type == EntryType.STANDARD.value) {
-                if (entry.end != null) {
-                    newLogEntries.add(TimeEntry(entry.start!!, entry.end!!, day))
+                val start = requireNotNull(entry.start) { "Standard entries require a start time" }
+                val end = entry.end
+                if (end != null) {
+                    newLogEntries.add(TimeEntry(start, end, day))
                 } else {
-                    newLogEntries.add(TimeEntry(entry.start!!, day))
+                    newLogEntries.add(TimeEntry(start, day))
                 }
             } else if (entry.type == EntryType.CORRECTION.value) {
-                val duration = entry.duration!!
+                val duration = requireNotNull(entry.duration) { "Correction entries require a duration" }
                 newLogEntries.add(TimeEntry(duration, EntryType.CORRECTION, day))
             }
         }
@@ -299,19 +300,18 @@ class WorklogService(
         val now = LocalDateTime.now(clock)
         val startOfDay = now.with(LocalTime.MIDNIGHT)
         val durations: MutableList<Duration> = ArrayList()
-        if (isNull(entries) || entries.isEmpty()) {
+        if (entries.isEmpty()) {
             return Duration.ZERO
         }
 
         entries.filter { it.type == EntryType.STANDARD }.forEach { timeEntry: TimeEntry ->
-            if (timeEntry.start != null && timeEntry.end != null) {
-                durations.add(calcGross(timeEntry))
-            } else if (timeEntry.start == null && timeEntry.end == null) {
-                durations.add(Duration.ZERO)
-            } else {
-                if (timeEntry.start!!.isAfter(startOfDay)) {
-                    durations.add(Duration.between(timeEntry.start, now))
-                }
+            val start = timeEntry.start
+            val end = timeEntry.end
+
+            when {
+                start == null -> durations.add(Duration.ZERO)
+                end != null -> durations.add(Duration.between(start, end))
+                start.isAfter(startOfDay) -> durations.add(Duration.between(start, now))
             }
         }
         // reduce to single value
@@ -323,10 +323,6 @@ class WorklogService(
         }
 
         return duration
-    }
-
-    private fun calcGross(timeEntry: TimeEntry): Duration {
-        return Duration.between(timeEntry.start, timeEntry.end)
     }
 
     /**
@@ -361,10 +357,11 @@ class WorklogService(
 
         logger.debug("found snapshot {}", snapshot)
 
-        val workdays: List<Workday> = if (snapshot.workday == null) {
+        val snapshotWorkday = snapshot.workday
+        val workdays: List<Workday> = if (snapshotWorkday == null) {
             dayRepository.findAllByOrderByDate()
         } else {
-            dayRepository.findAllByDateGreaterThanEqualOrderByDate(requireNotNull(snapshot.workday?.date))
+            dayRepository.findAllByDateGreaterThanEqualOrderByDate(snapshotWorkday.date)
         }
 
         val localDateDayMap = calcDays(workdays)
@@ -374,9 +371,9 @@ class WorklogService(
             localDateDayMap[key] = d
         }
 
-        var prev: Workday? = null
+        var previousBalance: Duration? = null
 
-        val snapshotDuration = snapshot.workday?.balance ?: Duration.ZERO
+        val snapshotDuration = snapshotWorkday?.balance ?: Duration.ZERO
 
         for (entry in localDateDayMap.entries) {
             var value = entry.value
@@ -387,22 +384,26 @@ class WorklogService(
             }
             val correction = entry.value?.entries?.find { i -> i.type == EntryType.CORRECTION }
 
-            value.gross = calcGross(value)
+            val gross = calcGross(value)
+            value.gross = gross
 
             value.isWorkday = isWorkday(value)
-            if (hasEntries(value) && !isCheckedIn(value)) {
-                value.balance = getBalanceWithoutBeingCheckedIn(prev, value, workingHours)
+            var balance = if (hasEntries(value) && !isCheckedIn(value)) {
+                getBalanceWithoutBeingCheckedIn(previousBalance, value, gross, workingHours)
             } else {
-                value.balance = getBalanceWithBeingCheckedIn(value, now, prev, workingHours)
-            }
-            if (correction != null) {
-                value.balance = value.balance!!.plus(correction.duration!!.toDuration())
-            }
-            if (snapshot.workday != null && value.date.isEqual(snapshot.workday!!.date)) {
-                value.balance = snapshotDuration
+                getBalanceWithBeingCheckedIn(value, now, previousBalance, workingHours)
             }
 
-            prev = value
+            correction?.let {
+                val duration = requireNotNull(it.duration) { "Correction entries require a duration" }
+                balance = balance.plus(duration.toDuration())
+            }
+            if (value.date == snapshotWorkday?.date) {
+                balance = snapshotDuration
+            }
+
+            value.balance = balance
+            previousBalance = balance
         }
         dayRepository.saveAll(workdays)
 
@@ -412,42 +413,35 @@ class WorklogService(
     private fun getBalanceWithBeingCheckedIn(
         value: Workday,
         now: LocalDate,
-        prev: Workday?,
+        previousBalance: Duration?,
         workingHours: Duration
     ) = if (value.isWorkday && value.date != now) {
-        if (prev == null) {
-            workingHours.negated()
-        } else {
-            prev.balance!!.minus(workingHours)
-        }
+        previousBalance?.minus(workingHours) ?: workingHours.negated()
     } else {
-        if (prev == null) {
-            value.balance ?: Duration.ZERO
-        } else {
-            prev.balance
-        }
+        previousBalance ?: value.balance ?: Duration.ZERO
     }
 
     private fun getBalanceWithoutBeingCheckedIn(
-        prev: Workday?,
+        previousBalance: Duration?,
         value: Workday,
+        gross: Duration,
         workingHours: Duration
-    ): Duration? {
-        return if (prev == null) {
+    ): Duration {
+        return if (previousBalance == null) {
             if (value.isWorkday) {
-                value.gross!!.minus(workingHours)
+                gross.minus(workingHours)
             } else {
-                value.gross
+                gross
             }
         } else {
             if (value.isWorkday) {
-                if (value.gross!!.isNegative) {
-                    prev.balance!!.plus(value.gross)
+                if (gross.isNegative) {
+                    previousBalance.plus(gross)
                 } else {
-                    value.gross!!.minus(workingHours).plus(prev.balance)
+                    gross.minus(workingHours).plus(previousBalance)
                 }
             } else {
-                value.gross!!.plus(prev.balance)
+                gross.plus(previousBalance)
             }
         }
     }
