@@ -1,7 +1,7 @@
 <div class="w-full">
   <!-- Tabs -->
   <div
-    class="grid grid-cols-4 h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full mb-6"
+    class="grid grid-cols-2 h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full mb-6"
   >
     @for (tab of tabs; track tab.value) {
       <button (click)="activeTab.set(tab.value)" [class]="tabClass(tab.value)">
@@ -9,56 +9,6 @@
       </button>
     }
   </div>
-
-  <!-- Account Tab -->
-  @if (activeTab() === 'account') {
-    <div class="space-y-6">
-      <!-- Account Info -->
-      <z-card zTitle="Account Information">
-        <div class="space-y-4">
-          <div class="space-y-2">
-            <z-form-label for="username">Username</z-form-label>
-            <input
-              id="username"
-              [value]="user()?.username || ''"
-              disabled
-              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm opacity-50 cursor-not-allowed"
-            />
-          </div>
-          <div class="space-y-2">
-            <z-form-label for="name">Display Name</z-form-label>
-            <input
-              id="name"
-              [value]="user()?.name || ''"
-              readonly
-              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-          <div class="space-y-2">
-            <z-form-label for="email">Email</z-form-label>
-            <input
-              id="email"
-              type="email"
-              [value]="user()?.email || ''"
-              readonly
-              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-      </z-card>
-
-      <!-- Danger Zone -->
-      <z-card zTitle="Danger Zone">
-        <p class="text-sm text-muted-foreground mb-4">
-          Once you delete your entries, there is no going back. Please be
-          certain.
-        </p>
-        <button z-button zType="destructive" (click)="openDeleteAllConfirm()">
-          Delete Time Entries
-        </button>
-      </z-card>
-    </div>
-  }
 
   <!-- Booking Tab -->
   @if (activeTab() === 'booking') {
@@ -139,46 +89,6 @@
     </div>
   }
 
-  <!-- Security Tab -->
-  @if (activeTab() === 'security') {
-    <div class="space-y-6">
-      <z-card zTitle="Change Password">
-        <div class="space-y-4">
-          <div class="space-y-2">
-            <z-form-label for="currentPassword">Current Password</z-form-label>
-            <input
-              id="currentPassword"
-              type="password"
-              placeholder="Enter current password"
-              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-          <div class="space-y-2">
-            <z-form-label for="newPassword">New Password</z-form-label>
-            <input
-              id="newPassword"
-              type="password"
-              placeholder="Enter new password"
-              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-          <div class="space-y-2">
-            <z-form-label for="confirmPassword"
-              >Confirm New Password</z-form-label
-            >
-            <input
-              id="confirmPassword"
-              type="password"
-              placeholder="Confirm new password"
-              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-          <button z-button>Update Password</button>
-        </div>
-      </z-card>
-    </div>
-  }
-
   <!-- Preferences Tab -->
   @if (activeTab() === 'preferences') {
     <div class="space-y-6">
@@ -214,6 +124,15 @@
             </div>
           </div>
         </div>
+      </z-card>
+
+      <z-card zTitle="Data">
+        <p class="text-sm text-muted-foreground mb-4">
+          Delete every recorded time entry. This cannot be undone.
+        </p>
+        <button z-button zType="destructive" (click)="openDeleteAllConfirm()">
+          Delete all time entries
+        </button>
       </z-card>
     </div>
   }

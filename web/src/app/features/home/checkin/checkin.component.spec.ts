@@ -2,7 +2,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { CheckinComponent } from './checkin.component';
 import { WorklogService } from '../../../core/services/worklog.service';
-import { MeService } from '../../../core/services/me.service';
 import { StatusResponse } from '../../../core/models/worklog.model';
 
 describe('CheckinComponent', () => {
@@ -12,7 +11,6 @@ describe('CheckinComponent', () => {
     getStatus: ReturnType<typeof vi.fn>;
     postStatus: ReturnType<typeof vi.fn>;
   };
-  let meServiceMock: { getName: ReturnType<typeof vi.fn> };
 
   const defaultStatus: StatusResponse = {
     checkedIn: false,
@@ -29,13 +27,11 @@ describe('CheckinComponent', () => {
         gross: '04:30',
       } satisfies StatusResponse),
     };
-    meServiceMock = { getName: vi.fn().mockReturnValue('John') };
 
     await TestBed.configureTestingModule({
       imports: [CheckinComponent],
       providers: [
         { provide: WorklogService, useValue: worklogServiceMock },
-        { provide: MeService, useValue: meServiceMock },
       ],
     }).compileComponents();
 
@@ -59,10 +55,6 @@ describe('CheckinComponent', () => {
       gross: '',
     });
     expect(component.isLoading()).toBe(false);
-  });
-
-  it('should expose the username from MeService', () => {
-    expect(component.username()).toBe('John');
   });
 
   it('should fetch balance on init and update model', async () => {

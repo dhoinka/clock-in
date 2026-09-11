@@ -1,27 +1,25 @@
 package com.gloomstone.clockin.config
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.gloomstone.clockin.shared.security.JwtUtil
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.client.SimpleClientHttpRequestFactory
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
-import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.transaction.annotation.EnableTransactionManagement
 import org.springframework.web.client.RestTemplate
 import tools.jackson.databind.DeserializationFeature
+import java.time.Clock
+import java.time.ZoneId
 
 
 @Configuration
 @EnableTransactionManagement
 @EnableConfigurationProperties
-class Config(private val appConfig: AppConfig) {
+class Config {
+
     @Bean
-    fun passwordEncoder(): PasswordEncoder {
-        return BCryptPasswordEncoder()
-    }
+    fun clock(): Clock = Clock.system(ZoneId.of("Europe/Berlin"))
 
     @Bean
     fun restTemplate(): RestTemplate {
@@ -30,15 +28,6 @@ class Config(private val appConfig: AppConfig) {
             setReadTimeout(5_000)
         }
         return RestTemplate(requestFactory)
-    }
-
-
-    @Bean
-    fun jwtUtil(): JwtUtil {
-        appConfig.jwtSecret?.let {
-            return JwtUtil(it, appConfig.accessTokenLifetime, appConfig.resetTokenLifetime)
-        }
-        throw IllegalStateException("JWT secret is not configured")
     }
 
     @Bean

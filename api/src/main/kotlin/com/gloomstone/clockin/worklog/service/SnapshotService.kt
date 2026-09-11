@@ -1,6 +1,5 @@
 package com.gloomstone.clockin.worklog.service
 
-import com.gloomstone.clockin.iam.domain.User
 import com.gloomstone.clockin.worklog.domain.Snapshot
 import com.gloomstone.clockin.worklog.repository.DayRepository
 import com.gloomstone.clockin.worklog.repository.SnapshotRepository
@@ -11,51 +10,33 @@ import java.time.temporal.TemporalAdjusters
 
 @Service
 class SnapshotService(
-    private val snapshotRepository: SnapshotRepository,
-    private val dayRepository: DayRepository
+    private val repository: SnapshotRepository,
+    private val days: DayRepository,
 ) {
     @Transactional
-    fun createSnapshot(date: LocalDate, user: User) {
-        val lastMonth = date.minusMonths(1).with(TemporalAdjusters.lastDayOfMonth())
+    fun get(): Snapshot = repository.findById(1).orElseGet { repository.save(Snapshot()) }
 
-        val snapshot = snapshotRepository.findByUser(user) ?: Snapshot(user = user)
-
-        if (snapshot.workday != null && date.isBefore(snapshot.workday!!.date)) {
+    @Transactional
+    fun createSnapshot(date: LocalDate) {
+        val snapshot = get()
+        val snapshotWorkday = snapshot.workday
+        if (snapshotWorkday != null && date.isBefore(snapshotWorkday.date)) {
             snapshot.workday = null
-            snapshotRepository.save(snapshot)
+            repository.save(snapshot)
             return
         }
 
-        val days =
-            this.dayRepository.findAllByDateLessThanEqualAndUserOrderByDate(lastMonth, user)
-
-        if (days.isNotEmpty()) {
-            val day = days.last()
-
-            snapshot.workday.let {
-                snapshot.workday = day
-                snapshotRepository.save(snapshot)
-                return
-            }
+        val previousMonth = date.minusMonths(1).with(TemporalAdjusters.lastDayOfMonth())
+        days.findAllByDateLessThanEqualOrderByDate(previousMonth).lastOrNull()?.let {
+            snapshot.workday = it
+            repository.save(snapshot)
         }
     }
 
     @Transactional
-    fun findOrCreate(user: User): Snapshot {
-        return snapshotRepository.findByUser(user) ?: snapshotRepository.save(Snapshot(user = user))
-    }
-
-    @Transactional
-    fun delete(snapshot: Snapshot) {
+    fun delete() {
+        val snapshot = get()
         snapshot.workday = null
-        this.snapshotRepository.save(snapshot)
+        repository.save(snapshot)
     }
-
-    @Transactional
-    fun delete(user: User) {
-        val snapshot = this.findOrCreate(user)
-        this.delete(snapshot)
-    }
-
-
 }

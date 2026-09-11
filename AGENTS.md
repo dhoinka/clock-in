@@ -35,23 +35,16 @@ docker compose up -d
 ## Backend conventions
 
 - Use Java 21 and follow the existing Kotlin and Spring patterns.
-- The main packages remain `com.gloomstone.clockin.iam`, `com.gloomstone.clockin.worklog`, and `com.gloomstone.clockin.shared`.
-- Inject the authenticated `UserPrincipal` with `@AuthenticationPrincipal`.
-- Keep management endpoints under `/mgmt/**` restricted to the `admin` authority.
-- Use `UserService.findByIdentity` for username, email, or ID lookup.
+- The main packages remain `com.gloomstone.clockin.worklog` and `com.gloomstone.clockin.shared`.
+- The application is intentionally single-user and unauthenticated. Do not add accounts, identities, roles, tenant keys, or ownership filters to worklog resources.
 - Use the typed exceptions in `com.gloomstone.clockin.shared.exception`; do not expose internal exception details in API responses.
-- Preserve resource ownership checks when reading, updating, or deleting user data.
-- Self-service profile updates must never accept roles or account activation state.
-- Add database changes as new Liquibase change sets. Do not rewrite migrations that may already have run.
-- The repository intentionally seeds roles but no users. Tests must create their own users and must not depend on a seeded administrator.
-- The checked-in JWT key and Compose credentials are development-only dummies. Production values must come from operator-managed environment variables.
+- Treat the current Liquibase changelog as the baseline schema for fresh installations. For future database changes, add new change sets rather than rewriting that baseline.
+- Compose credentials are development-only dummies. Production values must come from operator-managed environment variables.
 
 ## Backend testing
 
 - Integration tests use Spring Boot, MockMvc, and an H2 database.
-- Use `token()` from `com.gloomstone.clockin.shared.testutil` for authenticated MockMvc requests. `token()` has admin and manager authorities; `token("alice")` has no roles.
-- Create any database user needed by a test inside that test or its setup method. A JWT principal does not create a corresponding database row.
-- Mock `PasswordEncoder` with the helpers in `com.gloomstone.clockin.iam.util` where the surrounding test suite already follows that pattern.
+- MockMvc integration tests call endpoints without authentication.
 
 ## Frontend conventions
 

@@ -86,7 +86,6 @@ export class WorklogService {
       gross: dto.gross ?? '',
       balance: dto.balance ?? '',
       workday: dto.workday,
-      user: dto.user ?? undefined,
     };
   }
 

@@ -20,14 +20,16 @@ Run PostgreSQL-backed configurations with the `production` profile and provide:
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
 - `SPRING_DATASOURCE_PASSWORD`
-- `JWT_SECRET` — token-signing secret; required outside local development
 
 Database migrations run through Liquibase at startup.
+
+The API is intentionally unauthenticated and stores one global worklog. Protect
+network access at the deployment boundary if the service is reachable outside a
+trusted environment.
 
 ## Structure
 
 - `src/main/kotlin/com/gloomstone/clockin/worklog` — worklog domain and API
-- `src/main/kotlin/com/gloomstone/clockin/iam` — authentication and users
-- `src/main/kotlin/com/gloomstone/clockin/shared` — shared security and errors
+- `src/main/kotlin/com/gloomstone/clockin/shared` — shared errors
 - `src/main/resources/db/changelog` — Liquibase migrations
 - `src/test` — unit and integration tests
