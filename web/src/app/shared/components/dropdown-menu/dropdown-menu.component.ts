@@ -5,7 +5,6 @@ import {
   computed,
   signal,
   HostListener,
-  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { cn } from '@/shared/utils/cn';
@@ -14,7 +13,6 @@ import { cn } from '@/shared/utils/cn';
   selector: 'zard-dropdown-menu',
   standalone: true,
   imports: [CommonModule],
-  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <div
       class="relative inline-block text-left"
@@ -45,7 +43,6 @@ export class DropdownMenuComponent {
   selector: 'zard-dropdown-menu-trigger',
   standalone: true,
   host: { '(click)': 'clickEvent.emit()' },
-  changeDetection: ChangeDetectionStrategy.Eager,
   template: `<ng-content />`,
 })
 export class DropdownMenuTriggerComponent {
@@ -57,7 +54,6 @@ export class DropdownMenuTriggerComponent {
   standalone: true,
   imports: [CommonModule],
   host: { '[class]': 'classes()' },
-  changeDetection: ChangeDetectionStrategy.Eager,
   template: `<ng-content />`,
 })
 export class DropdownMenuContentComponent {
@@ -86,7 +82,6 @@ export class DropdownMenuContentComponent {
     '[class]': 'classes()',
     '(click)': 'clickEvent.emit()',
   },
-  changeDetection: ChangeDetectionStrategy.Eager,
   template: `<ng-content />`,
 })
 export class DropdownMenuItemComponent {
@@ -105,7 +100,6 @@ export class DropdownMenuItemComponent {
   selector: 'zard-dropdown-menu-separator',
   standalone: true,
   host: { class: '-mx-1 my-1 h-px bg-muted' },
-  changeDetection: ChangeDetectionStrategy.Eager,
   template: ``,
 })
 export class DropdownMenuSeparatorComponent {}

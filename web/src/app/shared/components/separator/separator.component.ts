@@ -1,9 +1,4 @@
-import {
-  Component,
-  input,
-  computed,
-  ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, input, computed } from '@angular/core';
 import { cn } from '@/shared/utils/cn';
 
 @Component({
@@ -13,7 +8,6 @@ import { cn } from '@/shared/utils/cn';
     '[class]': 'classes()',
     role: 'separator',
   },
-  changeDetection: ChangeDetectionStrategy.Eager,
   template: ``,
 })
 export class SeparatorComponent {

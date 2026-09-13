@@ -1,9 +1,4 @@
-import {
-  Component,
-  signal,
-  HostListener,
-  ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, signal, HostListener } from '@angular/core';
 import { NgIcon } from '@ng-icons/core';
 import { RouterOutlet } from '@angular/router';
 import { NavigationComponent } from '../navigation/navigation.component';
@@ -12,7 +7,6 @@ import { NavigationComponent } from '../navigation/navigation.component';
   selector: 'app-main-layout',
   standalone: true,
   imports: [RouterOutlet, NavigationComponent, NgIcon],
-  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './main-layout.component.html',
 })
 export class MainLayoutComponent {
