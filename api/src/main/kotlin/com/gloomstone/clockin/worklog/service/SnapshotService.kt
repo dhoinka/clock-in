@@ -1,36 +1,38 @@
 package com.gloomstone.clockin.worklog.service
 
 import com.gloomstone.clockin.worklog.domain.Snapshot
-import com.gloomstone.clockin.worklog.repository.DayRepository
+import com.gloomstone.clockin.worklog.domain.Workday
 import com.gloomstone.clockin.worklog.repository.SnapshotRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import java.time.LocalDate
-import java.time.temporal.TemporalAdjusters
 
 @Service
 class SnapshotService(
     private val repository: SnapshotRepository,
-    private val days: DayRepository,
 ) {
     @Transactional
     fun get(): Snapshot = repository.findById(1).orElseGet { repository.save(Snapshot()) }
 
     @Transactional
-    fun createSnapshot(date: LocalDate) {
+    fun invalidateFrom(date: LocalDate) {
         val snapshot = get()
         val snapshotWorkday = snapshot.workday
-        if (snapshotWorkday != null && date.isBefore(snapshotWorkday.date)) {
+        if (snapshotWorkday != null && !date.isAfter(snapshotWorkday.date)) {
             snapshot.workday = null
             repository.save(snapshot)
+        }
+    }
+
+    @Transactional
+    fun advanceTo(workday: Workday) {
+        val snapshot = get()
+        if (snapshot.workday?.date?.let { !workday.date.isAfter(it) } == true) {
             return
         }
 
-        val previousMonth = date.minusMonths(1).with(TemporalAdjusters.lastDayOfMonth())
-        days.findAllByDateLessThanEqualOrderByDate(previousMonth).lastOrNull()?.let {
-            snapshot.workday = it
-            repository.save(snapshot)
-        }
+        snapshot.workday = workday
+        repository.save(snapshot)
     }
 
     @Transactional

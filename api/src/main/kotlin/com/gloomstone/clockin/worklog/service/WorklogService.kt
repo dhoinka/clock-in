@@ -47,6 +47,7 @@ class WorklogService(
         val now = LocalDateTime.now(clock)
         logger.info("time entry recorded")
 
+        snapshotService.invalidateFrom(now.toLocalDate())
         val day = dayRepository.findByDate(now.toLocalDate()) ?: createDay(now.toLocalDate())
 
         if (day.entries.isEmpty() || day.entries.last().end != null) {
@@ -66,6 +67,7 @@ class WorklogService(
     fun update(request: UpdateWorkdayRequest): Workday {
         val date = request.date
         val validatedEntries = request.entries.map { validateEntry(it, date) }
+        snapshotService.invalidateFrom(date)
         val day = dayRepository.findByDate(date) ?: createDay(date)
 
         timeEntryRepository.deleteAll(day.entries)
@@ -76,7 +78,6 @@ class WorklogService(
 
         day.entries = newLogEntries
 
-        snapshotService.createSnapshot(date)
         calcBalance()
 
         return dayRepository.save(day).also {
@@ -331,6 +332,8 @@ class WorklogService(
             previousBalance = totals.balance
         }
         dayRepository.saveAll(workdays)
+
+        localDateDayMap.values.filterNotNull().lastOrNull()?.let(snapshotService::advanceTo)
 
         return ArrayList(localDateDayMap.values.filterNotNull())
     }

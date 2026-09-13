@@ -2,22 +2,23 @@ package com.gloomstone.clockin.worklog.service
 
 import com.gloomstone.clockin.worklog.domain.Setting
 import com.gloomstone.clockin.worklog.domain.Snapshot
+import com.gloomstone.clockin.worklog.domain.Workday
 import com.gloomstone.clockin.worklog.repository.SettingRepository
 import com.gloomstone.clockin.worklog.repository.SnapshotRepository
-import com.gloomstone.clockin.worklog.repository.DayRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.time.Duration
+import java.time.LocalDate
 import java.util.Optional
 
 class SingletonServiceTest {
     private val settingRepository: SettingRepository = mock()
     private val snapshotRepository: SnapshotRepository = mock()
-    private val dayRepository: DayRepository = mock()
 
     @Test
     fun `settings are created using fixed singleton id`() {
@@ -36,9 +37,46 @@ class SingletonServiceTest {
         val snapshot = Snapshot()
         whenever(snapshotRepository.findById(1)).thenReturn(Optional.of(snapshot))
 
-        SnapshotService(snapshotRepository, dayRepository).delete()
+        SnapshotService(snapshotRepository).delete()
 
         assertThat(snapshot.id).isEqualTo(1)
+        assertThat(snapshot.workday).isNull()
+        verify(snapshotRepository).save(snapshot)
+    }
+
+    @Test
+    fun `snapshot advances to the latest calculated day`() {
+        val previousDay = Workday(LocalDate.of(2026, 9, 7))
+        val latestDay = Workday(LocalDate.of(2026, 9, 8))
+        val snapshot = Snapshot(previousDay)
+        whenever(snapshotRepository.findById(1)).thenReturn(Optional.of(snapshot))
+
+        SnapshotService(snapshotRepository).advanceTo(latestDay)
+
+        assertThat(snapshot.workday).isSameAs(latestDay)
+        verify(snapshotRepository).save(snapshot)
+    }
+
+    @Test
+    fun `snapshot does not move backwards`() {
+        val latestDay = Workday(LocalDate.of(2026, 9, 8))
+        val snapshot = Snapshot(latestDay)
+        whenever(snapshotRepository.findById(1)).thenReturn(Optional.of(snapshot))
+
+        SnapshotService(snapshotRepository).advanceTo(Workday(LocalDate.of(2026, 9, 7)))
+
+        assertThat(snapshot.workday).isSameAs(latestDay)
+        verify(snapshotRepository, never()).save(snapshot)
+    }
+
+    @Test
+    fun `change on snapshot day invalidates cached balance`() {
+        val date = LocalDate.of(2026, 9, 8)
+        val snapshot = Snapshot(Workday(date))
+        whenever(snapshotRepository.findById(1)).thenReturn(Optional.of(snapshot))
+
+        SnapshotService(snapshotRepository).invalidateFrom(date)
+
         assertThat(snapshot.workday).isNull()
         verify(snapshotRepository).save(snapshot)
     }
