@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WorklogService } from '@/core/services/worklog.service';
@@ -54,10 +54,11 @@ export class SettingsComponent implements OnInit {
   settingsSaving = signal(false);
   settingsError = signal('');
 
-  readonly isSettingsDirty = computed(
-    () =>
-      JSON.stringify(this.settings) !== JSON.stringify(this.originalSettings),
-  );
+  isSettingsDirty(): boolean {
+    return (
+      JSON.stringify(this.settings) !== JSON.stringify(this.originalSettings)
+    );
+  }
 
   ngOnInit(): void {
     this.loadSettings();
