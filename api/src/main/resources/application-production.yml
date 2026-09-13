@@ -4,5 +4,3 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
-app:
-  refresh-cookie-secure: ${APP_REFRESH_COOKIE_SECURE:true}

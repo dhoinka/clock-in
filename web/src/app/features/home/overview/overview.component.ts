@@ -32,10 +32,9 @@ export class OverviewComponent implements OnInit {
   tabClass(tab: string): string {
     const base =
       'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all cursor-pointer';
-    if (this.activeTab() === tab) {
-      return `${base} bg-background text-foreground shadow-sm`;
-    }
-    return `${base} hover:bg-background/50`;
+    return this.activeTab() === tab
+      ? `${base} bg-background text-foreground shadow-sm`
+      : `${base} hover:bg-background/50`;
   }
 
   ngOnInit(): void {
@@ -60,19 +59,18 @@ export class OverviewComponent implements OnInit {
 
   private async loadStats(): Promise<void> {
     const statsData = await this.worklogService.getWorkStats();
-    if (statsData.avgStart !== 0 && statsData.avgStart !== null) {
+    if (statsData.avgStart !== null && statsData.avgEnd !== null) {
       this.stats.set({
-        avgStart: this.formatTime(statsData.avgStart!),
-        avgEnd: this.formatTime(statsData.avgEnd!),
+        avgStart: this.formatTime(statsData.avgStart),
+        avgEnd: this.formatTime(statsData.avgEnd),
       });
     }
   }
 
   private formatTime(time: number): string {
-    const intPart = Math.floor(time);
-    const fracPart = time - intPart;
-    const minutes = Math.round(fracPart * 60);
-    return `${String(intPart).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    const hours = Math.floor(time);
+    const minutes = Math.round((time - hours) * 60);
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
   }
 
   openDeleteConfirm(entry: Entry): void {

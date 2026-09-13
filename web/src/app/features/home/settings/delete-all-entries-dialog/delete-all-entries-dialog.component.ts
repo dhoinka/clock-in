@@ -13,8 +13,8 @@ export interface DeleteAllEntriesDialogData {
   imports: [ZardButtonComponent],
   template: `
     <p class="text-muted-foreground text-sm">
-      Are you sure you want to delete all your time entries? This action cannot
-      be undone.
+      Are you sure you want to delete all time entries? This action cannot be
+      undone.
     </p>
 
     <div

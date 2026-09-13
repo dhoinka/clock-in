@@ -9,7 +9,6 @@ import {
 import { NgIcon } from '@ng-icons/core';
 import { format, getHours } from 'date-fns';
 import { WorklogService } from '@/core/services/worklog.service';
-import { MeService } from '@/core/services/me.service';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { CheckInModel } from '@/core/models/worklog.model';
 
@@ -20,7 +19,6 @@ import { CheckInModel } from '@/core/models/worklog.model';
 })
 export class CheckinComponent implements OnInit, OnDestroy {
   private worklogService = inject(WorklogService);
-  private meService = inject(MeService);
 
   model = signal<CheckInModel>({ checkedIn: false, balance: '', gross: '' });
   currentTime = signal(new Date());
@@ -28,8 +26,6 @@ export class CheckinComponent implements OnInit, OnDestroy {
 
   private timeInterval?: ReturnType<typeof setInterval>;
   private balanceInterval?: ReturnType<typeof setInterval>;
-
-  readonly username = computed(() => this.meService.getName());
 
   readonly greeting = computed(() => {
     const hour = getHours(this.currentTime());

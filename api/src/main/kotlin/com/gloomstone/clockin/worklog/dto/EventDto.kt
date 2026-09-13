@@ -9,5 +9,5 @@ data class EventDto(
     var start: LocalDate? = null,
     var end: LocalDate? = null,
     var status: String? = null,
-    var username: String? = null,
+    var isAllDay: Boolean = true,
 )
