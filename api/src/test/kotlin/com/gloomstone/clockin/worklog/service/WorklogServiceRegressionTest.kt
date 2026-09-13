@@ -62,7 +62,20 @@ class WorklogServiceRegressionTest {
 
         assertThat(updated.gross).isEqualTo(Duration.ofHours(6).plusMinutes(30))
         assertThat(updated.balance).isEqualTo(Duration.ofHours(-1).plusMinutes(-30))
-        verify(snapshots).createSnapshot(date)
+        verify(snapshots).invalidateFrom(date)
+        verify(snapshots).advanceTo(day)
+    }
+
+    @Test
+    fun `recording an entry invalidates and refreshes the snapshot`() {
+        val day = Workday(date)
+        whenever(days.findByDate(date)).thenReturn(day)
+        whenever(days.findAllByOrderByDate()).thenReturn(listOf(day))
+
+        service.recordEntry()
+
+        verify(snapshots).invalidateFrom(date)
+        verify(snapshots).advanceTo(day)
     }
 
     @Test

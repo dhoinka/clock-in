@@ -1,84 +1,182 @@
-<div class="flex justify-center mt-3 mb-10">
-  <div class="w-full lg:w-2/3">
-    <div class="flex justify-between mb-4">
-      <z-select
-        class="w-48"
-        zPlaceholder="Select a month"
-        [(zValue)]="selectedMonth"
-        (zSelectionChange)="loadBookings($event.toString())"
+<div class="mx-auto mt-3 mb-10 w-full px-4 lg:w-11/12">
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-1" aria-label="Booking month navigation">
+      <button
+        z-button
+        zType="outline"
+        zSize="icon"
+        type="button"
+        aria-label="Previous month"
+        (click)="navigate('prev')"
       >
-        @for (month of months(); track month.value) {
-          <z-select-item [zValue]="month.value">{{
-            month.viewValue
-          }}</z-select-item>
-        }
-      </z-select>
+        <ng-icon name="lucideChevronLeft" />
+      </button>
+      <button
+        z-button
+        zType="outline"
+        type="button"
+        [disabled]="loading()"
+        (click)="navigate('today')"
+      >
+        Today
+      </button>
+      <button
+        z-button
+        zType="outline"
+        zSize="icon"
+        type="button"
+        aria-label="Next month"
+        (click)="navigate('next')"
+      >
+        <ng-icon name="lucideChevronRight" />
+      </button>
+      <h1 class="ml-3 text-lg font-semibold" aria-live="polite">
+        {{ selectedMonthLabel() }}
+      </h1>
     </div>
+    <button
+      z-button
+      type="button"
+      [disabled]="loading()"
+      (click)="openNewEvent()"
+    >
+      <ng-icon name="lucidePlus" class="mr-1 h-4 w-4" />
+      Book event
+    </button>
+  </div>
 
-    <div class="rounded-md border">
-      <table z-table>
-        <caption z-table-caption>
-          Booking entries for
-          {{
-            selectedMonthLabel()
-          }}
-        </caption>
-        <thead z-table-header>
-          <tr z-table-row>
-            <th z-table-head>Date</th>
-            <th z-table-head>Start</th>
-            <th z-table-head>End</th>
-            <th z-table-head>Gross</th>
-            <th z-table-head>Balance</th>
-            <th z-table-head class="text-right">Options</th>
-          </tr>
-        </thead>
-        <tbody z-table-body>
-          @if (loading()) {
-            @for (i of skeletonRows; track i) {
-              <tr z-table-row>
-                <td z-table-cell><z-skeleton class="h-4 w-32" /></td>
-                <td z-table-cell><z-skeleton class="h-4 w-12" /></td>
-                <td z-table-cell><z-skeleton class="h-4 w-12" /></td>
-                <td z-table-cell><z-skeleton class="h-4 w-16" /></td>
-                <td z-table-cell><z-skeleton class="h-4 w-16" /></td>
-                <td z-table-cell class="text-right">
-                  <z-skeleton class="h-8 w-8 ml-auto" />
-                </td>
-              </tr>
-            }
-          } @else {
-            @for (
-              element of bookingsMonth();
-              track element.date.toISOString()
-            ) {
-              <tr z-table-row [class]="getRowClass(element)">
-                <td z-table-cell>
-                  {{ format(element.date, 'EEE dd.MM.yyyy') }}
-                </td>
-                <td z-table-cell>
-                  {{ getStartTime(element) }}
-                </td>
-                <td z-table-cell>
-                  {{ getEndTime(element) }}
-                </td>
-                <td z-table-cell>{{ element.gross }}</td>
-                <td z-table-cell>{{ element.balance }}</td>
-                <td z-table-cell class="text-right">
-                  <button
-                    z-button
-                    zType="ghost"
-                    zSize="icon"
-                    (click)="openEditDialog(element)"
-                  >
-                    <ng-icon name="lucideEllipsis" />
-                  </button>
-                </td>
-              </tr>
-            }
-          }
-        </tbody>
-      </table>
+  @if (loadError()) {
+    <div
+      class="mb-4 flex items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+      role="alert"
+    >
+      <span>{{ loadError() }}</span>
+      <button
+        z-button
+        zType="outline"
+        zSize="sm"
+        type="button"
+        (click)="loadBookings()"
+      >
+        Retry
+      </button>
     </div>
+  }
+
+  <div class="overflow-x-auto rounded-md border">
+    <table z-table>
+      <caption z-table-caption>
+        Booking entries and events for
+        {{
+          selectedMonthLabel()
+        }}
+      </caption>
+      <thead z-table-header>
+        <tr z-table-row>
+          <th z-table-head>Date</th>
+          <th z-table-head>Start</th>
+          <th z-table-head>End</th>
+          <th z-table-head>Gross</th>
+          <th z-table-head>Balance</th>
+          <th z-table-head>Events</th>
+          <th z-table-head class="text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody z-table-body>
+        @if (loading()) {
+          @for (i of skeletonRows; track i) {
+            <tr z-table-row>
+              <td z-table-cell><z-skeleton class="h-4 w-32" /></td>
+              <td z-table-cell><z-skeleton class="h-4 w-12" /></td>
+              <td z-table-cell><z-skeleton class="h-4 w-12" /></td>
+              <td z-table-cell><z-skeleton class="h-4 w-16" /></td>
+              <td z-table-cell><z-skeleton class="h-4 w-16" /></td>
+              <td z-table-cell><z-skeleton class="h-4 w-36" /></td>
+              <td z-table-cell><z-skeleton class="ml-auto h-8 w-32" /></td>
+            </tr>
+          }
+        } @else {
+          @for (element of bookingsMonth(); track element.date.toISOString()) {
+            <tr z-table-row [class]="getRowClass(element)">
+              <td z-table-cell>{{ format(element.date, 'EEE dd.MM.yyyy') }}</td>
+              <td z-table-cell>{{ getStartTime(element) }}</td>
+              <td z-table-cell>{{ getEndTime(element) }}</td>
+              <td z-table-cell>{{ element.gross }}</td>
+              <td z-table-cell>{{ element.balance }}</td>
+              <td z-table-cell>
+                <div class="flex min-w-52 flex-wrap gap-1">
+                  @for (item of displayEvents(element); track item.key) {
+                    @if (item.kind === 'event' && item.event) {
+                      <button
+                        type="button"
+                        class="inline-flex items-center rounded-full border px-2 py-0.5 text-left text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        [ngClass]="eventBadgeClass(item.event)"
+                        [attr.aria-label]="
+                          'Edit ' +
+                          item.event.type +
+                          ' event ' +
+                          item.title +
+                          (item.dayLabel ? ', ' + item.dayLabel : '')
+                        "
+                        (click)="openEventDialog(element.date, item.event)"
+                      >
+                        <ng-icon
+                          [name]="eventIconName(item.event)"
+                          class="mr-1 h-3 w-3"
+                        />
+                        {{ item.title }}
+                        @if (item.dayLabel) {
+                          · {{ item.dayLabel }}
+                        }
+                      </button>
+                    } @else {
+                      <span
+                        class="inline-flex items-center rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
+                        [attr.aria-label]="
+                          'Holiday: ' + item.title + '. Read-only.'
+                        "
+                      >
+                        <ng-icon name="lucideFlag" class="mr-1 h-3 w-3" />
+                        {{ item.title }}
+                      </span>
+                    }
+                  }
+                </div>
+              </td>
+              <td z-table-cell class="whitespace-nowrap text-right">
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="sm"
+                  type="button"
+                  (click)="openEditDialog(element)"
+                >
+                  Time
+                </button>
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="sm"
+                  type="button"
+                  (click)="openNewEvent(element.date)"
+                >
+                  Event
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr z-table-row>
+              <td
+                z-table-cell
+                colspan="7"
+                class="py-8 text-center text-muted-foreground"
+              >
+                No days found for this month.
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
   </div>
 </div>

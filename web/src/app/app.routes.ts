@@ -24,17 +24,7 @@ export const routes: Routes = [
       },
       {
         path: 'calendar',
-        loadComponent: () =>
-          import('./features/home/calendar/calendar-page.component').then(
-            (m) => m.CalendarPageComponent,
-          ),
-      },
-      {
-        path: 'overview',
-        loadComponent: () =>
-          import('./features/home/overview/overview.component').then(
-            (m) => m.OverviewComponent,
-          ),
+        redirectTo: 'bookings',
       },
       {
         path: 'settings',

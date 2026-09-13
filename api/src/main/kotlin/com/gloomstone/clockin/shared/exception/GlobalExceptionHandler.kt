@@ -1,12 +1,43 @@
 package com.gloomstone.clockin.shared.exception
+
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
-@RestControllerAdvice class GlobalExceptionHandler {
- @ExceptionHandler(BadRequestException::class) fun badRequest(e: BadRequestException)=response(HttpStatus.BAD_REQUEST,e.message)
- @ExceptionHandler(NotFoundException::class) fun notFound(e: NotFoundException)=response(HttpStatus.NOT_FOUND,e.message)
- @ExceptionHandler(ConflictException::class) fun conflict(e: ConflictException)=response(HttpStatus.CONFLICT,e.message)
- @ExceptionHandler(Exception::class) fun internal(e: Exception)=response(HttpStatus.INTERNAL_SERVER_ERROR,"An unexpected error occurred")
- private fun response(status:HttpStatus,message:String?)=ResponseEntity(ErrorResponse(status=status.value(),error=status.reasonPhrase,message=message,path=null),status)
+
+@RestControllerAdvice
+class GlobalExceptionHandler {
+    private val logger = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
+
+    @ExceptionHandler(BadRequestException::class)
+    fun badRequest(exception: BadRequestException): ResponseEntity<ErrorResponse> {
+        return response(HttpStatus.BAD_REQUEST, exception.message)
+    }
+
+    @ExceptionHandler(NotFoundException::class)
+    fun notFound(exception: NotFoundException): ResponseEntity<ErrorResponse> {
+        return response(HttpStatus.NOT_FOUND, exception.message)
+    }
+
+    @ExceptionHandler(ConflictException::class)
+    fun conflict(exception: ConflictException): ResponseEntity<ErrorResponse> {
+        return response(HttpStatus.CONFLICT, exception.message)
+    }
+
+    @ExceptionHandler(Exception::class)
+    fun internal(exception: Exception): ResponseEntity<ErrorResponse> {
+        logger.error("Unhandled exception while processing request", exception)
+        return response(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred")
+    }
+
+    private fun response(status: HttpStatus, message: String?): ResponseEntity<ErrorResponse> {
+        val body = ErrorResponse(
+            status = status.value(),
+            error = status.reasonPhrase,
+            message = message,
+            path = null,
+        )
+        return ResponseEntity(body, status)
+    }
 }
