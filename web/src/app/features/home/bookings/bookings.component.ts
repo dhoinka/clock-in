@@ -41,6 +41,8 @@ interface DisplayEvent {
   readonly dayLabel?: string;
 }
 
+type EventIconName = 'lucideHeartPulse' | 'lucideSparkles' | 'lucideUmbrella';
+
 @Component({
   selector: 'app-bookings',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -171,6 +173,17 @@ export class BookingsComponent implements OnInit {
         return 'border-red-300 bg-red-100 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100';
       default:
         return 'border-violet-300 bg-violet-100 text-violet-900 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-100';
+    }
+  }
+
+  eventIconName(event: Event): EventIconName {
+    switch (event.type) {
+      case 'vacation':
+        return 'lucideUmbrella';
+      case 'sick':
+        return 'lucideHeartPulse';
+      default:
+        return 'lucideSparkles';
     }
   }
 

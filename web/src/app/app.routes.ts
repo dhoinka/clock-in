@@ -27,13 +27,6 @@ export const routes: Routes = [
         redirectTo: 'bookings',
       },
       {
-        path: 'overview',
-        loadComponent: () =>
-          import('./features/home/overview/overview.component').then(
-            (m) => m.OverviewComponent,
-          ),
-      },
-      {
         path: 'settings',
         loadComponent: () =>
           import('./features/home/settings/settings.component').then(

@@ -120,6 +120,10 @@
                         "
                         (click)="openEventDialog(element.date, item.event)"
                       >
+                        <ng-icon
+                          [name]="eventIconName(item.event)"
+                          class="mr-1 h-3 w-3"
+                        />
                         {{ item.title }}
                         @if (item.dayLabel) {
                           · {{ item.dayLabel }}
@@ -132,6 +136,7 @@
                           'Holiday: ' + item.title + '. Read-only.'
                         "
                       >
+                        <ng-icon name="lucideFlag" class="mr-1 h-3 w-3" />
                         {{ item.title }}
                       </span>
                     }

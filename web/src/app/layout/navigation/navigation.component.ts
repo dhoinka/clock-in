@@ -23,7 +23,6 @@ export class NavigationComponent {
   readonly menu: MenuItem[] = [
     { display: 'Home', link: '/', icon: 'lucideHouse' },
     { display: 'Bookings', link: '/bookings', icon: 'lucideClock3' },
-    { display: 'Overview', link: '/overview', icon: 'lucideList' },
   ];
 
   onLinkClick(): void {

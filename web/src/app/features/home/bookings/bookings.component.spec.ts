@@ -93,4 +93,14 @@ describe('BookingsComponent', () => {
       },
     ]);
   });
+
+  it('uses a distinct icon for each event type', () => {
+    expect(component.eventIconName(leave)).toBe('lucideUmbrella');
+    expect(component.eventIconName({ ...leave, type: 'sick' })).toBe(
+      'lucideHeartPulse',
+    );
+    expect(component.eventIconName({ ...leave, type: 'other' })).toBe(
+      'lucideSparkles',
+    );
+  });
 });
