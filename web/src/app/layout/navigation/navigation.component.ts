@@ -3,11 +3,7 @@ import { NgIcon } from '@ng-icons/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { SeparatorComponent } from '@/shared/components/separator/separator.component';
 
-type MenuIconName =
-  | 'lucideHouse'
-  | 'lucideClock3'
-  | 'lucideCalendar'
-  | 'lucideList';
+type MenuIconName = 'lucideHouse' | 'lucideClock3' | 'lucideList';
 
 interface MenuItem {
   display: string;
@@ -18,12 +14,7 @@ interface MenuItem {
 @Component({
   selector: 'app-navigation',
   standalone: true,
-  imports: [
-    RouterLink,
-    RouterLinkActive,
-    NgIcon,
-    SeparatorComponent,
-  ],
+  imports: [RouterLink, RouterLinkActive, NgIcon, SeparatorComponent],
   templateUrl: './navigation.component.html',
 })
 export class NavigationComponent {
@@ -32,12 +23,10 @@ export class NavigationComponent {
   readonly menu: MenuItem[] = [
     { display: 'Home', link: '/', icon: 'lucideHouse' },
     { display: 'Bookings', link: '/bookings', icon: 'lucideClock3' },
-    { display: 'Calendar', link: '/calendar', icon: 'lucideCalendar' },
     { display: 'Overview', link: '/overview', icon: 'lucideList' },
   ];
 
   onLinkClick(): void {
     this.linkClick.emit();
   }
-
 }

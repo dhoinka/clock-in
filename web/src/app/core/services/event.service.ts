@@ -4,22 +4,36 @@ import { firstValueFrom } from 'rxjs';
 import { format, parseISO } from 'date-fns';
 import { Event, Holiday, holidaySchema } from '../models/worklog.model';
 
-interface EventDto {
+/** Mirrors the API's LocalDate based event contract. */
+export interface EventDto {
   id?: number;
   title: string;
-  type: string;
-  status: string;
+  type: Event['type'];
+  status: Event['status'];
   start: string;
   end: string;
   allDay?: boolean;
+}
+
+export interface EventRange {
+  from: Date;
+  to: Date;
 }
 
 @Injectable({ providedIn: 'root' })
 export class EventService {
   private http = inject(HttpClient);
 
-  async getEvents(): Promise<Event[]> {
-    const dtos = await firstValueFrom(this.http.get<EventDto[]>('/api/events'));
+  async getEvents(range?: EventRange): Promise<Event[]> {
+    const params = range
+      ? {
+          from: format(range.from, 'yyyy-MM-dd'),
+          to: format(range.to, 'yyyy-MM-dd'),
+        }
+      : undefined;
+    const dtos = await firstValueFrom(
+      this.http.get<EventDto[]>('/api/events', { params }),
+    );
     return dtos.map((dto) => this.convertDtoToEvent(dto));
   }
 
@@ -56,8 +70,8 @@ export class EventService {
     return {
       id: dto.id,
       title: dto.title,
-      type: dto.type as Event['type'],
-      status: dto.status as Event['status'],
+      type: dto.type,
+      status: dto.status,
       start: parseISO(dto.start),
       end: parseISO(dto.end),
       allDay: dto.allDay ?? true,
@@ -66,14 +80,14 @@ export class EventService {
 
   private convertEventToDto(
     event: Omit<Event, 'id'> & { id?: number },
-  ): object {
+  ): Omit<EventDto, 'id'> {
     return {
       title: event.title,
       type: event.type,
       status: event.status,
-      start: format(event.start, "yyyy-MM-dd'T'HH:mm:ss"),
-      end: format(event.end, "yyyy-MM-dd'T'HH:mm:ss"),
-      allDay: event.allDay,
+      start: format(event.start, 'yyyy-MM-dd'),
+      end: format(event.end, 'yyyy-MM-dd'),
+      allDay: true,
     };
   }
 }

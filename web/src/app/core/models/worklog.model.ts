@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export type EntryType = 'standard' | 'correction';
-export type EventType = 'none' | 'vacation' | 'sick';
-export type EventStatus = 'new' | '';
+export type EventType = 'none' | 'vacation' | 'sick' | 'other';
+export type EventStatus = 'new' | 'approved';
 
 export const statusResponseSchema = z.object({
   checkedIn: z.boolean(),
@@ -60,12 +60,6 @@ export interface WorklogUpdateRequest {
 export interface EntryUpdateRequest {
   date: string | null;
   entries: EntryDto[];
-}
-
-export interface CalendarEvent {
-  id: string;
-  events: Event[];
-  color: string;
 }
 
 export interface Event {
