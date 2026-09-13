@@ -1,4 +1,4 @@
-import { Component, output } from '@angular/core';
+import { Component, output, ChangeDetectionStrategy } from '@angular/core';
 import { NgIcon } from '@ng-icons/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { SeparatorComponent } from '@/shared/components/separator/separator.component';
@@ -15,6 +15,7 @@ interface MenuItem {
   selector: 'app-navigation',
   standalone: true,
   imports: [RouterLink, RouterLinkActive, NgIcon, SeparatorComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './navigation.component.html',
 })
 export class NavigationComponent {

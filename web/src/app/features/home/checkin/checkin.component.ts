@@ -5,6 +5,7 @@ import {
   inject,
   OnInit,
   OnDestroy,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { NgIcon } from '@ng-icons/core';
 import { format, getHours } from 'date-fns';
@@ -15,6 +16,7 @@ import { CheckInModel } from '@/core/models/worklog.model';
 @Component({
   selector: 'app-checkin',
   imports: [ZardButtonComponent, NgIcon],
+  changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './checkin.component.html',
 })
 export class CheckinComponent implements OnInit, OnDestroy {
