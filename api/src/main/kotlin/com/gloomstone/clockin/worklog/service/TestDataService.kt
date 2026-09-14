@@ -28,7 +28,9 @@ class TestDataService(
     }
 
     fun createTestData() {
-        if (dayRepository.count() > 0) return
+        if (dayRepository.count() > 0) {
+            return
+        }
 
         var now = LocalDateTime.now(clock).minusDays(30).withHour(8).withDayOfMonth(6)
         repeat(30) {

@@ -41,14 +41,16 @@ export class BookingEditDialogComponent {
   readonly format = format;
 
   readonly entryForms = signal<EntryForm[]>(
-    this.data.row.entries.length > 0
-      ? this.data.row.entries.map((e) => ({
-          type: e.type,
-          start: e.start ? format(e.start, 'HH:mm') : '',
-          end: e.end ? format(e.end, 'HH:mm') : '',
-          duration: e.duration ?? '',
-        }))
-      : [{ type: 'standard', start: '', end: '', duration: '' }],
+    this.sortEntryForms(
+      this.data.row.entries.length > 0
+        ? this.data.row.entries.map((e) => ({
+            type: e.type,
+            start: e.start ? format(e.start, 'HH:mm') : '',
+            end: e.end ? format(e.end, 'HH:mm') : '',
+            duration: e.duration ?? '',
+          }))
+        : [{ type: 'standard', start: '', end: '', duration: '' }],
+    ),
   );
 
   readonly overlapError = signal('');
@@ -58,10 +60,36 @@ export class BookingEditDialogComponent {
   );
 
   addEntry(type: 'standard' | 'correction'): void {
-    this.entryForms.update((prev) => [
-      ...prev,
-      { type, start: '', end: '', duration: '' },
-    ]);
+    if (type === 'correction' && this.hasCorrectionEntry()) {
+      return;
+    }
+
+    this.entryForms.update((prev) =>
+      this.sortEntryForms([
+        ...prev,
+        { type, start: '', end: '', duration: '' },
+      ]),
+    );
+  }
+
+  setEntryType(index: number, type: 'standard' | 'correction'): void {
+    if (
+      type === 'correction' &&
+      this.entryForms().some(
+        (entry, entryIndex) =>
+          entryIndex !== index && entry.type === 'correction',
+      )
+    ) {
+      return;
+    }
+
+    this.entryForms.update((prev) =>
+      this.sortEntryForms(
+        prev.map((entry, entryIndex) =>
+          entryIndex === index ? { ...entry, type } : entry,
+        ),
+      ),
+    );
   }
 
   removeEntry(index: number): void {
@@ -124,5 +152,12 @@ export class BookingEditDialogComponent {
       }
     }
     return false;
+  }
+
+  private sortEntryForms(entries: EntryForm[]): EntryForm[] {
+    return [...entries].sort((a, b) => {
+      if (a.type === b.type) return 0;
+      return a.type === 'correction' ? 1 : -1;
+    });
   }
 }
