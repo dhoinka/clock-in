@@ -1,4 +1,10 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideIcons } from '@ng-icons/core';
+import {
+  lucidePlus,
+  lucideTrash2,
+  lucideTriangleAlert,
+} from '@ng-icons/lucide';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Workday } from '@/core/models/worklog.model';
@@ -26,20 +32,23 @@ describe('BookingEditDialogComponent', () => {
   const onSaved = vi.fn();
   const close = vi.fn();
 
+  let fixture: ComponentFixture<BookingEditDialogComponent>;
   let component: BookingEditDialogComponent;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    TestBed.configureTestingModule({
+    await TestBed.configureTestingModule({
+      imports: [BookingEditDialogComponent],
       providers: [
+        provideIcons({ lucidePlus, lucideTrash2, lucideTriangleAlert }),
         { provide: WorklogService, useValue: { updateEntries } },
         { provide: ZardDialogRef, useValue: { close } },
         { provide: Z_MODAL_DATA, useValue: { row, onSaved } },
       ],
-    });
-    component = TestBed.runInInjectionContext(
-      () => new BookingEditDialogComponent(),
-    );
+    }).compileComponents();
+    fixture = TestBed.createComponent(BookingEditDialogComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
   });
 
   it('sorts corrections last while preserving entry identity', () => {
@@ -65,10 +74,36 @@ describe('BookingEditDialogComponent', () => {
     ).toHaveLength(1);
   });
 
-  it('submits sorted entries with their own original ids', async () => {
+  it('updates and reorders entries through the rendered signal form', async () => {
+    const correction = component
+      .entryModel()
+      .find((entry) => entry.type === 'correction');
+    component.removeEntry(correction!.key);
+    component.addEntry('standard');
+    fixture.detectChanges();
+
+    const firstTypeSelect = fixture.nativeElement.querySelector(
+      'select',
+    ) as HTMLSelectElement;
+    firstTypeSelect.value = 'correction';
+    firstTypeSelect.dispatchEvent(new Event('input', { bubbles: true }));
+    firstTypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    await fixture.whenStable();
+
+    expect(component.entryModel().map((entry) => entry.type)).toEqual([
+      'standard',
+      'correction',
+    ]);
+  });
+
+  it('submits the rendered form with entries keeping their original ids', async () => {
     updateEntries.mockResolvedValue(row);
 
-    await component.onSubmit(new Event('submit'));
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    form.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    );
+    await fixture.whenStable();
 
     expect(updateEntries).toHaveBeenCalledWith({
       date: row.date,
@@ -79,5 +114,29 @@ describe('BookingEditDialogComponent', () => {
     });
     expect(onSaved).toHaveBeenCalledWith(row);
     expect(close).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the controls disabled while a save is in progress', async () => {
+    let resolveUpdate: (value: Workday) => void = () => undefined;
+    updateEntries.mockReturnValue(
+      new Promise<Workday>((resolve) => {
+        resolveUpdate = resolve;
+      }),
+    );
+
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    form.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    );
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    const fieldset = fixture.nativeElement.querySelector(
+      'fieldset',
+    ) as HTMLFieldSetElement;
+    expect(fieldset.disabled).toBe(true);
+
+    resolveUpdate(row);
+    await fixture.whenStable();
   });
 });
