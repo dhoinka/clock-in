@@ -67,6 +67,9 @@ class WorklogService(
     fun update(request: UpdateWorkdayRequest): Workday {
         val date = request.date
         val validatedEntries = request.entries.map { validateEntry(it, date) }
+        if (validatedEntries.count { it is ValidatedEntry.Correction } > 1) {
+            throw BadRequestException("Only one correction entry is allowed per day")
+        }
         snapshotService.invalidateFrom(date)
         val day = dayRepository.findByDate(date) ?: createDay(date)
 

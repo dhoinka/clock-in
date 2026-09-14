@@ -198,6 +198,7 @@ export class BookingsComponent implements OnInit {
       zData: data,
       zHideFooter: true,
       zWidth: '720px',
+      zCustomClasses: 'bg-card text-card-foreground',
     });
   }
 

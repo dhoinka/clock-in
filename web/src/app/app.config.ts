@@ -8,6 +8,7 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideIcons } from '@ng-icons/core';
 import {
+  lucideCalendarPlus,
   lucideCheck,
   lucideChevronDown,
   lucideChevronLeft,
@@ -42,6 +43,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideHttpClient(withXhr()),
     provideIcons({
+      lucideCalendarPlus,
       lucideCheck,
       lucideChevronDown,
       lucideChevronLeft,
