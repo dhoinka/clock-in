@@ -1,136 +1,156 @@
-<p class="text-sm text-muted-foreground">
-  {{ format(data.row.date, 'EEEE, d MMMM yyyy') }}
-</p>
+<form class="space-y-4" (submit)="onSubmit($event)">
+  <p class="text-sm text-muted-foreground">
+    {{ format(data.row.date, 'EEEE, d MMMM yyyy') }}
+  </p>
 
-@if (overlapError()) {
-  <div
-    class="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-    role="alert"
-  >
-    <ng-icon name="lucideTriangleAlert" class="size-4 shrink-0" />
-    {{ overlapError() }}
-  </div>
-}
-
-<div class="max-h-[min(55vh,32rem)] space-y-3 overflow-y-auto pr-1">
-  @for (entry of entryForms(); track $index; let i = $index) {
-    @if (entry.type === 'standard') {
-      <div
-        class="grid grid-cols-1 gap-4 rounded-xl border bg-muted/30 p-4 transition-colors hover:bg-muted/45 dark:bg-muted/20 dark:hover:bg-muted/30 sm:grid-cols-[minmax(9rem,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
-      >
-        <div class="space-y-2">
-          <label z-form-label [for]="'entry-type-' + i">Type</label>
-          <select
-            [id]="'entry-type-' + i"
-            [ngModel]="entry.type"
-            (ngModelChange)="setEntryType(i, $event)"
-            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:[color-scheme:dark]"
-          >
-            <option value="standard">Standard</option>
-            <option value="correction" [disabled]="hasCorrectionEntry()">
-              Correction
-            </option>
-          </select>
-        </div>
-        <div class="space-y-2">
-          <label z-form-label [for]="'entry-start-' + i">Start</label>
-          <input
-            [id]="'entry-start-' + i"
-            type="time"
-            [(ngModel)]="entryForms()[i].start"
-            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:[color-scheme:dark]"
-          />
-        </div>
-        <div class="space-y-2">
-          <label z-form-label [for]="'entry-end-' + i">End</label>
-          <input
-            [id]="'entry-end-' + i"
-            type="time"
-            [(ngModel)]="entryForms()[i].end"
-            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:[color-scheme:dark]"
-          />
-        </div>
-        <div class="flex justify-end">
-          <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            type="button"
-            class="text-muted-foreground hover:text-destructive"
-            [attr.aria-label]="'Remove entry ' + (i + 1)"
-            (click)="removeEntry(i)"
-          >
-            <ng-icon name="lucideTrash2" />
-          </button>
-        </div>
-      </div>
-    } @else {
-      <div
-        class="grid grid-cols-1 gap-4 rounded-xl border border-l-2 border-l-amber-500/50 bg-muted/30 p-4 transition-colors hover:bg-muted/45 dark:border-l-amber-400/40 dark:bg-muted/20 dark:hover:bg-muted/30 sm:grid-cols-[minmax(9rem,1.2fr)_minmax(0,2fr)_auto] sm:items-end"
-      >
-        <div class="space-y-2">
-          <label z-form-label [for]="'entry-type-' + i">Type</label>
-          <select
-            [id]="'entry-type-' + i"
-            [ngModel]="entry.type"
-            (ngModelChange)="setEntryType(i, $event)"
-            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:[color-scheme:dark]"
-          >
-            <option value="standard">Standard</option>
-            <option value="correction">Correction</option>
-          </select>
-        </div>
-        <div class="space-y-2">
-          <label z-form-label [for]="'entry-duration-' + i">Duration</label>
-          <input
-            [id]="'entry-duration-' + i"
-            [(ngModel)]="entryForms()[i].duration"
-            placeholder="e.g. 30m, 1h"
-            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
-          />
-        </div>
-        <div class="flex justify-end">
-          <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            type="button"
-            class="text-muted-foreground hover:text-destructive"
-            [attr.aria-label]="'Remove entry ' + (i + 1)"
-            (click)="removeEntry(i)"
-          >
-            <ng-icon name="lucideTrash2" />
-          </button>
-        </div>
-      </div>
-    }
+  @if (displayedError()) {
+    <div
+      class="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+      role="alert"
+    >
+      <ng-icon name="lucideTriangleAlert" class="size-4 shrink-0" />
+      {{ displayedError() }}
+    </div>
   }
-</div>
 
-<div class="my-3 flex flex-wrap gap-2">
-  <button z-button zType="outline" type="button" (click)="addEntry('standard')">
-    <ng-icon name="lucidePlus" class="size-4" />
-    Add Entry
-  </button>
-  @if (!hasCorrectionEntry()) {
+  <div class="max-h-[min(55vh,32rem)] space-y-3 overflow-y-auto pr-1">
+    @for (entry of entryModel(); track entry.key; let i = $index) {
+      @let entryFields = entryForm[i];
+      @if (entry.type === 'standard') {
+        <div
+          class="grid grid-cols-1 gap-4 rounded-xl border bg-muted/30 p-4 dark:bg-muted/20 sm:grid-cols-[minmax(9rem,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+        >
+          <div class="space-y-2">
+            <label z-form-label [for]="'entry-type-' + i">Type</label>
+            <select
+              [id]="'entry-type-' + i"
+              [formField]="entryFields.type"
+              (change)="sortEntries()"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-[color,box-shadow] [color-scheme:light] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:[color-scheme:dark]"
+            >
+              <option value="standard">Standard</option>
+              <option value="correction" [disabled]="hasCorrectionEntry()">
+                Correction
+              </option>
+            </select>
+          </div>
+          <div class="space-y-2">
+            <label z-form-label [for]="'entry-start-' + i">Start</label>
+            <input
+              [id]="'entry-start-' + i"
+              type="time"
+              [formField]="entryFields.start"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-[color,box-shadow] [color-scheme:light] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:[color-scheme:dark]"
+            />
+          </div>
+          <div class="space-y-2">
+            <label z-form-label [for]="'entry-end-' + i">End</label>
+            <input
+              [id]="'entry-end-' + i"
+              type="time"
+              [formField]="entryFields.end"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-[color,box-shadow] [color-scheme:light] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:[color-scheme:dark]"
+            />
+          </div>
+          <div class="flex justify-end">
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              type="button"
+              class="text-muted-foreground hover:text-destructive"
+              [attr.aria-label]="'Remove entry ' + (i + 1)"
+              [disabled]="entryForm().submitting()"
+              (click)="removeEntry(entry.key)"
+            >
+              <ng-icon name="lucideTrash2" />
+            </button>
+          </div>
+        </div>
+      } @else {
+        <div
+          class="grid grid-cols-1 gap-4 rounded-xl border border-l-2 border-l-amber-500/50 bg-muted/30 p-4 dark:border-l-amber-400/40 dark:bg-muted/20 sm:grid-cols-[minmax(9rem,1.2fr)_minmax(0,2fr)_auto] sm:items-end"
+        >
+          <div class="space-y-2">
+            <label z-form-label [for]="'entry-type-' + i">Type</label>
+            <select
+              [id]="'entry-type-' + i"
+              [formField]="entryFields.type"
+              (change)="sortEntries()"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-[color,box-shadow] [color-scheme:light] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:[color-scheme:dark]"
+            >
+              <option value="standard">Standard</option>
+              <option value="correction">Correction</option>
+            </select>
+          </div>
+          <div class="space-y-2">
+            <label z-form-label [for]="'entry-duration-' + i">Duration</label>
+            <input
+              [id]="'entry-duration-' + i"
+              [formField]="entryFields.duration"
+              placeholder="e.g. 30m, 1h"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+            />
+          </div>
+          <div class="flex justify-end">
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              type="button"
+              class="text-muted-foreground hover:text-destructive"
+              [attr.aria-label]="'Remove entry ' + (i + 1)"
+              [disabled]="entryForm().submitting()"
+              (click)="removeEntry(entry.key)"
+            >
+              <ng-icon name="lucideTrash2" />
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </div>
+
+  <div class="mt-3 flex flex-wrap gap-2">
     <button
       z-button
-      zType="ghost"
+      zType="outline"
       type="button"
-      class="text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:text-amber-300 dark:hover:bg-amber-400/10 dark:hover:text-amber-200"
-      (click)="addEntry('correction')"
+      [disabled]="entryForm().submitting()"
+      (click)="addEntry('standard')"
     >
       <ng-icon name="lucidePlus" class="size-4" />
-      Add Correction
+      Add Entry
     </button>
-  }
-</div>
+    @if (!hasCorrectionEntry()) {
+      <button
+        z-button
+        zType="ghost"
+        type="button"
+        class="text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:text-amber-300 dark:hover:bg-amber-400/10 dark:hover:text-amber-200"
+        [disabled]="entryForm().submitting()"
+        (click)="addEntry('correction')"
+      >
+        <ng-icon name="lucidePlus" class="size-4" />
+        Add Correction
+      </button>
+    }
+  </div>
 
-<div
-  class="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end"
->
-  <button z-button zType="outline" type="button" (click)="closeDialog()">
-    Cancel
-  </button>
-  <button z-button type="button" (click)="saveEntries()">Save Changes</button>
-</div>
+  <div
+    class="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end"
+  >
+    <button
+      z-button
+      zType="outline"
+      type="button"
+      [disabled]="entryForm().submitting()"
+      (click)="closeDialog()"
+    >
+      Cancel
+    </button>
+    <button z-button type="submit" [disabled]="entryForm().submitting()">
+      {{ entryForm().submitting() ? 'Saving…' : 'Save Changes' }}
+    </button>
+  </div>
+</form>

@@ -95,20 +95,17 @@ class WorklogServiceRegressionTest {
     }
 
     @Test
-    fun `global update applies every correction entry`() {
-        val day = Workday(date)
-        whenever(days.findByDate(date)).thenReturn(day)
-        whenever(days.findAllByOrderByDate()).thenReturn(listOf(day))
+    fun `global update rejects more than one correction entry`() {
         val request = UpdateWorkdayRequest(date, listOf(
-            TimeEntryResponse(EntryType.STANDARD.value, LocalDateTime.of(2026, 9, 8, 8, 0), LocalDateTime.of(2026, 9, 8, 12, 0)),
-            TimeEntryResponse(EntryType.STANDARD.value, LocalDateTime.of(2026, 9, 8, 12, 0), LocalDateTime.of(2026, 9, 8, 16, 0)),
             TimeEntryResponse(EntryType.CORRECTION.value, duration = "-1h"),
             TimeEntryResponse(EntryType.CORRECTION.value, duration = "30m"),
         ))
 
-        val updated = service.update(request)
+        assertThatThrownBy { service.update(request) }
+            .isInstanceOf(BadRequestException::class.java)
+            .hasMessage("Only one correction entry is allowed per day")
 
-        assertThat(updated.balance).isEqualTo(Duration.ofMinutes(-30))
+        verify(entries, never()).deleteAll(any<Iterable<TimeEntry>>())
     }
 
     @Test
