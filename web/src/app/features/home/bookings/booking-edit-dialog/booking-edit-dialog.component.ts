@@ -150,22 +150,32 @@ export class BookingEditDialogComponent {
   async onSubmit(event: Event): Promise<void> {
     event.preventDefault();
     this.saveError.set('');
+    let savedWorkday: Workday | undefined;
 
     try {
-      await submit(this.entryForm, {
+      const succeeded = await submit(this.entryForm, {
         action: async (form) => {
-          const result = await this.saveEntries(form().value());
-          this.data.onSaved(result);
-          this.dialogRef.close();
+          savedWorkday = await this.saveEntries(form().value());
           return undefined;
         },
         onInvalid: (form) => {
           form().errorSummary()[0]?.fieldTree().focusBoundControl();
         },
       });
+
+      if (!succeeded || !savedWorkday) {
+        return;
+      }
     } catch (error) {
       console.error('Failed to update booking:', error);
       this.saveError.set('Could not save the changes. Please try again.');
+      return;
+    }
+
+    try {
+      this.data.onSaved(savedWorkday);
+    } finally {
+      this.dialogRef.close();
     }
   }
 
