@@ -1,0 +1,189 @@
+<div class="mx-auto mt-3 mb-10 w-full px-4 lg:w-11/12">
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-1" aria-label="Calendar month navigation">
+      <button
+        z-button
+        zType="outline"
+        zSize="icon"
+        type="button"
+        aria-label="Previous month"
+        (click)="navigate('prev')"
+      >
+        <ng-icon name="lucideChevronLeft" />
+      </button>
+      <button
+        z-button
+        zType="outline"
+        zSize="icon"
+        type="button"
+        aria-label="Next month"
+        (click)="navigate('next')"
+      >
+        <ng-icon name="lucideChevronRight" />
+      </button>
+      <button
+        z-button
+        zType="outline"
+        type="button"
+        class="ml-1"
+        [disabled]="loading()"
+        (click)="navigate('today')"
+      >
+        Today
+      </button>
+    </div>
+
+    <h1
+      class="order-first w-full text-center text-xl font-semibold tracking-tight sm:order-none sm:w-auto"
+      aria-live="polite"
+    >
+      {{ selectedMonthLabel() }}
+    </h1>
+
+    <button
+      z-button
+      type="button"
+      [disabled]="loading()"
+      (click)="openAddEvent()"
+    >
+      <ng-icon name="lucidePlus" class="mr-1 h-4 w-4" />
+      Add Event
+    </button>
+  </div>
+
+  @if (loadError()) {
+    <div
+      class="mb-4 flex items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+      role="alert"
+    >
+      <span>{{ loadError() }}</span>
+      <button
+        z-button
+        zType="outline"
+        zSize="sm"
+        type="button"
+        (click)="loadCalendarData()"
+      >
+        Retry
+      </button>
+    </div>
+  }
+
+  <div class="overflow-hidden rounded-lg border border-border bg-card">
+    <div
+      class="grid grid-cols-7 border-b border-border text-center text-sm font-semibold divide-x divide-border"
+    >
+      <div class="py-2.5">Mon</div>
+      <div class="py-2.5">Tue</div>
+      <div class="py-2.5">Wed</div>
+      <div class="py-2.5">Thu</div>
+      <div class="py-2.5">Fri</div>
+      <div class="py-2.5">Sat</div>
+      <div class="py-2.5">Sun</div>
+    </div>
+
+    <div class="divide-y divide-border">
+      @if (loading()) {
+        @for (w of [0, 1, 2, 3, 4, 5]; track w) {
+          <div class="grid grid-cols-7 divide-x divide-border min-h-[105px] lg:min-h-[115px]">
+            @for (d of [0, 1, 2, 3, 4, 5, 6]; track d) {
+              <div class="flex flex-col p-2">
+                <z-skeleton class="ml-auto h-4 w-6" />
+                @if (d === 1 && w === 1) {
+                  <z-skeleton class="mt-4 h-5 w-full rounded" />
+                }
+              </div>
+            }
+          </div>
+        }
+      } @else {
+        @for (week of weeks(); track $index) {
+          <div class="relative min-h-[105px] lg:min-h-[115px]">
+            <div
+              class="absolute inset-0 grid h-full grid-cols-7 divide-x divide-border"
+            >
+              @for (day of week.days; track day.dateKey) {
+                <button
+                  type="button"
+                  (click)="openAddEvent(day.date)"
+                  [class.bg-muted/30]="!day.isCurrentMonth"
+                  [class.bg-[#8b5cf6]/20]="day.isToday"
+                  class="group relative flex h-full w-full flex-col p-1.5 text-right transition-colors hover:bg-muted/50 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  [attr.aria-label]="
+                    (day.isToday ? 'Today, ' : '') +
+                    format(day.date, 'PPPP') +
+                    '. Click to add event.'
+                  "
+                >
+                  <span
+                    class="text-xs font-semibold"
+                    [class.text-muted-foreground]="!day.isCurrentMonth"
+                    [class.text-foreground]="day.isCurrentMonth && !day.isToday"
+                    [class.text-purple-400]="day.isToday"
+                  >
+                    {{ day.dayNumber }}
+                  </span>
+                </button>
+              }
+            </div>
+
+            <div
+              class="pointer-events-none relative grid grid-cols-7 gap-y-1 px-1 pt-7 pb-2"
+              [style.min-height]="week.maxTracks * 28 + 36 + 'px'"
+            >
+              @for (segment of week.segments; track segment.id) {
+                @if (segment.kind === 'event' && segment.event) {
+                  <button
+                    type="button"
+                    (click)="$event.stopPropagation(); openEditEvent(segment.event)"
+                    class="pointer-events-auto z-10 flex h-6 items-center truncate px-2 text-xs font-medium text-white shadow-xs transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    [ngClass]="[
+                      segment.colorClass,
+                      segment.continuesBefore ? 'rounded-l-none' : 'rounded-l',
+                      segment.continuesAfter ? 'rounded-r-none' : 'rounded-r'
+                    ]"
+                    [style.grid-column]="
+                      segment.startCol + ' / span ' + segment.span
+                    "
+                    [style.grid-row]="segment.track + 1"
+                    [attr.aria-label]="
+                      'Edit ' +
+                      (segment.type || 'event') +
+                      ': ' +
+                      segment.title
+                    "
+                  >
+                    @if (segment.iconName) {
+                      <ng-icon
+                        [name]="segment.iconName"
+                        class="mr-1 h-3.5 w-3.5 shrink-0"
+                      />
+                    }
+                    <span class="truncate">{{ segment.title }}</span>
+                  </button>
+                } @else {
+                  <div
+                    class="pointer-events-auto z-10 flex h-6 cursor-default items-center truncate px-2 text-xs font-medium text-white shadow-xs"
+                    [ngClass]="[segment.colorClass, 'rounded']"
+                    [style.grid-column]="
+                      segment.startCol + ' / span ' + segment.span
+                    "
+                    [style.grid-row]="segment.track + 1"
+                    [attr.aria-label]="'Holiday: ' + segment.title"
+                    title="Holiday: {{ segment.title }}"
+                  >
+                    <ng-icon
+                      name="lucideFlag"
+                      class="mr-1 h-3.5 w-3.5 shrink-0"
+                    />
+                    <span class="truncate">{{ segment.title }}</span>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</div>

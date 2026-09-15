@@ -24,7 +24,10 @@ export const routes: Routes = [
       },
       {
         path: 'calendar',
-        redirectTo: 'bookings',
+        loadComponent: () =>
+          import('./features/home/calendar/calendar.component').then(
+            (m) => m.CalendarComponent,
+          ),
       },
       {
         path: 'settings',
