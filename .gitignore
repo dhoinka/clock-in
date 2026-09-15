@@ -7,8 +7,6 @@
 # compiled output
 dist/
 tmp/
-web/**/*.js
-web/**/*.js.map
 
 # dependencies
 node_modules/
