@@ -20,7 +20,9 @@ class EventService(
     private val mapper: EventMapper,
     private val snapshotService: SnapshotService,
 ) {
-    fun findAll(): List<Event> = repository.findAllByOrderByStart()
+    fun findAll(): List<Event> {
+      return repository.findAllByOrderByStart()
+    }
 
     fun findAll(from: LocalDate, to: LocalDate): List<Event> {
         validateRange(from, to)
@@ -42,7 +44,9 @@ class EventService(
     @Transactional
     @CacheEvict(value = ["events"], allEntries = true)
     fun update(request: EventDto): Event {
-        val id = request.id ?: throw BadRequestException("Event id is required")
+        val id = request.id
+            ?: throw BadRequestException("Event id is required")
+
         validateEvent(request)
         val event = repository.findById(id).orElseThrow { NotFoundException("Event not found") }
         event.title = request.title

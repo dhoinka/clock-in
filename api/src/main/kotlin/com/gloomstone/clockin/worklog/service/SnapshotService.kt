@@ -12,7 +12,9 @@ class SnapshotService(
     private val repository: SnapshotRepository,
 ) {
     @Transactional
-    fun get(): Snapshot = repository.findById(1).orElseGet { repository.save(Snapshot()) }
+    fun get(): Snapshot {
+      return repository.findById(1).orElseGet { repository.save(Snapshot()) }
+    }
 
     @Transactional
     fun invalidateFrom(date: LocalDate) {
