@@ -1,0 +1,10 @@
+version: "3"
+
+tasks:
+  default:
+    cmd: task --list
+
+  dev:
+    desc: Start the services needed for local development
+    cmds:
+      - docker compose -f docker-compose.dev.yml up -d
