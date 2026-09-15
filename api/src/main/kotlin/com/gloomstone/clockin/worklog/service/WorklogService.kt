@@ -1,11 +1,7 @@
 package com.gloomstone.clockin.worklog.service
 
 import com.gloomstone.clockin.shared.exception.BadRequestException
-import com.gloomstone.clockin.worklog.domain.EntryType
-import com.gloomstone.clockin.worklog.domain.Holiday
-import com.gloomstone.clockin.worklog.domain.Status
-import com.gloomstone.clockin.worklog.domain.TimeEntry
-import com.gloomstone.clockin.worklog.domain.Workday
+import com.gloomstone.clockin.worklog.domain.*
 import com.gloomstone.clockin.worklog.dto.TimeEntryResponse
 import com.gloomstone.clockin.worklog.dto.UpdateWorkdayRequest
 import com.gloomstone.clockin.worklog.repository.DayRepository
@@ -14,16 +10,11 @@ import com.gloomstone.clockin.worklog.util.toDuration
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import java.time.Clock
-import java.time.Duration
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.Period
+import java.time.*
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
-import java.util.ArrayList
-import java.util.TreeMap
+import java.util.*
 
 /**
  * Service class for handling worklog related operations.
@@ -117,9 +108,6 @@ class WorklogService(
             else -> throw BadRequestException("Unknown entry type: ${entry.type}")
         }
 
-    private fun getSortedList(newLogEntries: List<TimeEntry>): List<TimeEntry> =
-        newLogEntries.sortedWith(compareBy<TimeEntry> { it.start == null }.thenBy { it.start })
-
     @Transactional
     fun createDay(date: LocalDate): Workday {
         val workday = Workday(date)
@@ -184,36 +172,10 @@ class WorklogService(
         return timeEntryRepository.findAllByType(type)
     }
 
-    @Transactional
-    fun getAllEntries(): List<Workday> {
-        calcBalance()
-
-        val days = dayRepository.findAllByOrderByDate()
-        if (days.isEmpty()) {
-            return emptyList()
-        }
-
-        val start = days.first().date
-        val end = LocalDate.now(clock)
-        val map: MutableMap<String, Workday?> = TreeMap()
-        val dist = ChronoUnit.DAYS.between(start, end)
-        var s = start
-        (0..dist).forEach { _ ->
-            val date = s
-            val key = date.format(DateTimeFormatter.ofPattern(DATE_FORMAT))
-            map[key] = null
-            s = s.plusDays(1)
-        }
-
-        days.forEach { i: Workday ->
-            i.isWorkday = isWorkday(i)
-            val key = i.date.format(DateTimeFormatter.ofPattern(DATE_FORMAT))
-            map[key] = i
-        }
-        setEmptyDays(map)
-
-        return map.values.toMutableList().filterNotNull()
+    private fun getSortedList(newLogEntries: List<TimeEntry>): List<TimeEntry> {
+        return newLogEntries.sortedWith(compareBy<TimeEntry> { it.start == null }.thenBy { it.start })
     }
+
 
     private fun setEmptyDays(map: MutableMap<String, Workday?>) {
         map.forEach { (key: String, value: Workday?) ->
@@ -376,6 +338,7 @@ class WorklogService(
     private fun isCheckedIn(workday: Workday): Boolean {
         return calculator.isCheckedIn(workday.entries)
     }
+
     companion object {
         const val DATE_FORMAT = "yyyy-MM-dd"
     }

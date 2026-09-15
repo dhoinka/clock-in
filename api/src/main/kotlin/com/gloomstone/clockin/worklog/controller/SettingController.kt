@@ -14,8 +14,12 @@ class SettingController(
     private val mapper: SettingMapper,
 ) {
     @GetMapping("/settings")
-    fun get() = mapper.toDto(service.get())
+    fun get(): SettingResponse {
+        return mapper.toDto(service.get())
+    }
 
     @PutMapping("/settings")
-    fun put(@RequestBody request: SettingResponse) = mapper.toDto(service.update(request))
+    fun put(@RequestBody request: SettingResponse): SettingResponse {
+        return mapper.toDto(service.update(request))
+    }
 }

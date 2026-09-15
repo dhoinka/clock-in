@@ -1,6 +1,7 @@
 package com.gloomstone.clockin.worklog.domain
 
-import jakarta.persistence.*
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
 import java.time.Duration
 
 @Entity
