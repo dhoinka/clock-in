@@ -10,9 +10,9 @@
 ## Current product behavior
 
 - The application is a single-user, unauthenticated worklog. Access control belongs at the deployment boundary.
-- The bookings table is the canonical history view. The former calendar route redirects to `/bookings`; do not introduce a second calendar-based editing flow.
+- The bookings table is the canonical history view. The calendar view at `/calendar` provides a monthly overview of events and holidays, allowing events to be booked and edited using the shared booking event dialog.
 - A table row represents one date and can contain standard time entries, correction entries, holidays, and overlapping all-day events.
-- Events are created and edited from the bookings table. Supported user-facing event types are `vacation`, `sick`, and `other`; newly created events have status `new`.
+- Events are created and edited from the bookings table and calendar view. Supported user-facing event types are `vacation`, `sick`, and `other`; newly created events have status `new`.
 - Event ranges are inclusive. Their API dates use ISO `yyyy-MM-dd`, while time-entry timestamps use ISO local date-time values.
 
 ## Commands
