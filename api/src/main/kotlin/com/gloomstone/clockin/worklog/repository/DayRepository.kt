@@ -10,6 +10,5 @@ interface DayRepository : JpaRepository<Workday, Long> {
     fun findByDate(date: LocalDate): Workday?
     fun findAllByOrderByDate(): List<Workday>
     fun findAllByDateGreaterThanEqualOrderByDate(date: LocalDate): List<Workday>
-    fun findAllByDateLessThanEqualOrderByDate(date: LocalDate): List<Workday>
     fun findAllByDateGreaterThanEqualAndDateLessThanEqualOrderByDate(min: LocalDate, max: LocalDate): List<Workday>
 }

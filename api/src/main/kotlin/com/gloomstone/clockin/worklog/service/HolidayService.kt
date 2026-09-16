@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
+import org.springframework.web.client.getForEntity
 import java.time.LocalDate
 
 @Service
@@ -19,7 +20,7 @@ class HolidayService(private val restTemplate: RestTemplate) {
             logger.info("get live holidays for year {}", date.year)
 
             val feiertageResp =
-                restTemplate.getForEntity(HOLIDAY_URL + date.year, Array<HolidayDto>::class.java)
+                restTemplate.getForEntity<Array<HolidayDto>>(HOLIDAY_URL + date.year)
 
             feiertageResp.body?.map {
                 this.toEntity(it)

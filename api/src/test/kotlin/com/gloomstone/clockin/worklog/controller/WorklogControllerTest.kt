@@ -1,10 +1,8 @@
 package com.gloomstone.clockin.worklog.controller
 
-import com.gloomstone.clockin.worklog.domain.Stat
 import com.gloomstone.clockin.worklog.domain.Status
 import com.gloomstone.clockin.worklog.dto.StatusResponse
 import com.gloomstone.clockin.worklog.mapper.WorklogMapper
-import com.gloomstone.clockin.worklog.service.StatService
 import com.gloomstone.clockin.worklog.service.WorklogService
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.whenever
@@ -23,7 +21,6 @@ class WorklogControllerTest {
     @Autowired lateinit var mvc: MockMvc
     @MockitoBean lateinit var service: WorklogService
     @MockitoBean lateinit var mapper: WorklogMapper
-    @MockitoBean lateinit var stats: StatService
     @MockitoBean lateinit var clock: Clock
 
     @Test
@@ -35,15 +32,5 @@ class WorklogControllerTest {
         mvc.perform(get("/status"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.checkedIn").value(false))
-    }
-
-    @Test
-    fun `personal stats are globally available without authentication`() {
-        whenever(stats.getStats()).thenReturn(Stat(8.5, 17.25))
-
-        mvc.perform(get("/worklog/stats"))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.avgStart").value(8.5))
-            .andExpect(jsonPath("$.avgEnd").value(17.25))
     }
 }
