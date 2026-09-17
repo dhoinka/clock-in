@@ -5,12 +5,7 @@ import com.gloomstone.clockin.worklog.domain.Workday
 import com.gloomstone.clockin.worklog.repository.DayRepository
 import com.gloomstone.clockin.worklog.repository.TimeEntryRepository
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.times
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset

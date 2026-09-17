@@ -1,6 +1,7 @@
 package com.gloomstone.clockin.worklog.repository
 
 import com.gloomstone.clockin.worklog.domain.Event
+import com.gloomstone.clockin.worklog.domain.EventType
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -22,5 +23,11 @@ interface EventRepository : JpaRepository<Event, Long> {
     fun findAllOverlappingRange(
         @Param("from") from: LocalDate,
         @Param("to") to: LocalDate,
+    ): List<Event>
+
+    fun findAllByTypeAndStartBetweenOrderByStart(
+        type: EventType,
+        start: LocalDate,
+        end: LocalDate,
     ): List<Event>
 }

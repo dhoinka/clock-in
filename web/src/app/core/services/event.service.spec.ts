@@ -44,7 +44,7 @@ describe('EventService', () => {
     http.verify();
   });
 
-  it('supports backend other and approved event values', async () => {
+  it('supports backend other, holiday, and approved event values', async () => {
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
@@ -61,10 +61,19 @@ describe('EventService', () => {
         start: '2026-10-01',
         end: '2026-10-01',
       },
+      {
+        id: 10,
+        title: 'Holiday',
+        type: 'holiday',
+        status: 'approved',
+        start: '2026-10-03',
+        end: '2026-10-03',
+      },
     ]);
 
     await expect(events).resolves.toMatchObject([
       { type: 'other', status: 'approved' },
+      { type: 'holiday', status: 'approved' },
     ]);
     http.verify();
   });

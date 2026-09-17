@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { addDays, format, startOfWeek } from 'date-fns';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Event, Holiday } from '@/core/models/worklog.model';
+import { Event } from '@/core/models/worklog.model';
 import { EventService } from '@/core/services/event.service';
 import { ZardDialogService } from '@/shared/components/dialog';
 import { BookingEventDialogComponent } from '../bookings/booking-event-dialog/booking-event-dialog.component';
@@ -11,7 +11,6 @@ import { CalendarComponent } from './calendar.component';
 describe('CalendarComponent', () => {
   const eventService = {
     getEvents: vi.fn(),
-    getHolidays: vi.fn(),
     createEvent: vi.fn(),
     updateEvent: vi.fn(),
     deleteEvent: vi.fn(),
@@ -51,10 +50,14 @@ describe('CalendarComponent', () => {
     allDay: true,
   };
 
-  const germanUnityHoliday: Holiday = {
-    date: '2026-10-03',
-    name: 'Tag der deutschen Einheit',
-    allStates: true,
+  const germanUnityHoliday: Event = {
+    id: 13,
+    title: 'Tag der deutschen Einheit',
+    type: 'holiday',
+    status: 'approved',
+    start: new Date(2026, 9, 3),
+    end: new Date(2026, 9, 3),
+    allDay: true,
   };
 
   let fixture: ComponentFixture<CalendarComponent>;
@@ -66,8 +69,8 @@ describe('CalendarComponent', () => {
       leave,
       doctor,
       crossWeekEvent,
+      germanUnityHoliday,
     ]);
-    eventService.getHolidays.mockResolvedValue([germanUnityHoliday]);
 
     await TestBed.configureTestingModule({
       imports: [CalendarComponent],
@@ -81,7 +84,7 @@ describe('CalendarComponent', () => {
     component = fixture.componentInstance;
   });
 
-  it('loads events and holidays for the fixed 42-day calendar range on init', async () => {
+  it('loads events including holidays for the fixed 42-day calendar range on init', async () => {
     component.currentMonth.set(new Date(2026, 8, 1)); // September 2026
     await component.loadCalendarData();
 
@@ -94,9 +97,12 @@ describe('CalendarComponent', () => {
       from: expectedStart,
       to: expectedEnd,
     });
-    expect(eventService.getHolidays).toHaveBeenCalled();
-    expect(component.events()).toEqual([leave, doctor, crossWeekEvent]);
-    expect(component.holidays()).toEqual([germanUnityHoliday]);
+    expect(component.events()).toEqual([
+      leave,
+      doctor,
+      crossWeekEvent,
+      germanUnityHoliday,
+    ]);
     expect(component.weeks().length).toBe(6);
     expect(component.weeks()[0].days.length).toBe(7);
   });
@@ -121,9 +127,7 @@ describe('CalendarComponent', () => {
 
     // Doctor event is on Tue Sep 8 (col 2). Since Vacation occupies col 1-6 on track 0,
     // Doctor should be assigned to track 1!
-    const doctorSegment = week1.segments.find(
-      (s) => s.event?.id === doctor.id,
-    );
+    const doctorSegment = week1.segments.find((s) => s.event?.id === doctor.id);
     expect(doctorSegment).toBeDefined();
     expect(doctorSegment?.startCol).toBe(2);
     expect(doctorSegment?.span).toBe(1);

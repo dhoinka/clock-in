@@ -13,7 +13,7 @@ class SnapshotService(
 ) {
     @Transactional
     fun get(): Snapshot {
-      return repository.findById(1).orElseGet { repository.save(Snapshot()) }
+        return repository.findById(1).orElseGet { repository.save(Snapshot()) }
     }
 
     @Transactional

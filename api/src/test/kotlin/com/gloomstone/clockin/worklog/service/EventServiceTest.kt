@@ -12,18 +12,15 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.time.LocalDate
-import java.util.Optional
+import java.util.*
 
 class EventServiceTest {
     private val repository = mock<EventRepository>()
     private val snapshotService = mock<SnapshotService>()
-    private val service = EventService(repository, EventMapper(), snapshotService)
+    private val holidayService = mock<HolidayService>()
+    private val service = EventService(repository, EventMapper(), snapshotService, holidayService)
 
     @BeforeEach
     fun setUp() {
@@ -39,6 +36,7 @@ class EventServiceTest {
         whenever(repository.findAllOverlappingRange(from, to)).thenReturn(listOf(startsAtFrom, endsAtTo))
 
         assertThat(service.findAll(from, to)).containsExactly(startsAtFrom, endsAtTo)
+        verify(holidayService).ensureYearLoaded(from.year)
         verify(repository).findAllOverlappingRange(from, to)
     }
 
@@ -48,6 +46,18 @@ class EventServiceTest {
         whenever(repository.findAllOverlappingRange(date(), date())).thenReturn(listOf(event))
 
         assertThat(service.findByDate(date())).containsExactly(event)
+    }
+
+    @Test
+    fun `range lookup synchronizes every covered year`() {
+        val from = LocalDate.of(2026, 12, 28)
+        val to = LocalDate.of(2027, 1, 8)
+        whenever(repository.findAllOverlappingRange(from, to)).thenReturn(emptyList())
+
+        service.findAll(from, to)
+
+        verify(holidayService).ensureYearLoaded(2026)
+        verify(holidayService).ensureYearLoaded(2027)
     }
 
     @Test
@@ -118,6 +128,21 @@ class EventServiceTest {
             .isInstanceOf(NotFoundException::class.java)
             .hasMessage("Event not found")
         verify(snapshotService, never()).delete()
+    }
+
+    @Test
+    fun `system holiday events cannot be updated or deleted`() {
+        val holiday = event(id = 9).apply { type = EventType.HOLIDAY }
+        whenever(repository.findById(9)).thenReturn(Optional.of(holiday))
+
+        assertThatThrownBy { service.update(request(id = 9)) }
+            .isInstanceOf(BadRequestException::class.java)
+            .hasMessage("Holiday events are read-only")
+        assertThatThrownBy { service.delete(9) }
+            .isInstanceOf(BadRequestException::class.java)
+            .hasMessage("Holiday events are read-only")
+
+        verify(repository, never()).delete(any())
     }
 
     private fun request(id: Long? = null) = EventDto(

@@ -4,10 +4,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { SeparatorComponent } from '@/shared/components/separator/separator.component';
 
 type MenuIconName =
-  | 'lucideHouse'
-  | 'lucideClock3'
-  | 'lucideCalendar'
-  | 'lucideList';
+  'lucideHouse' | 'lucideClock3' | 'lucideCalendar' | 'lucideList';
 
 interface MenuItem {
   display: string;

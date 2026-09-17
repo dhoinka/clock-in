@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { format, parseISO } from 'date-fns';
-import { Event, Holiday, holidaySchema } from '../models/worklog.model';
+import { Event } from '../models/worklog.model';
 
 /** Mirrors the API's LocalDate based event contract. */
 export interface EventDto {
@@ -56,14 +56,6 @@ export class EventService {
 
   async deleteEvent(eventId: number): Promise<void> {
     await firstValueFrom(this.http.delete(`/api/events/${eventId}`));
-  }
-
-  async getHolidays(date: Date): Promise<Holiday[]> {
-    const year = date.getFullYear();
-    const response = await firstValueFrom(
-      this.http.get(`/api/holidays/${year}`),
-    );
-    return holidaySchema.array().parse(response);
   }
 
   private convertDtoToEvent(dto: EventDto): Event {

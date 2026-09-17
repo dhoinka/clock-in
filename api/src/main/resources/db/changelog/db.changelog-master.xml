@@ -1,53 +1,98 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <databaseChangeLog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
     <!-- New single-user baseline. Existing IAM and per-user data is intentionally discarded. -->
     <changeSet id="1-single-user-baseline" author="clock-in">
         <createTable tableName="workday">
-            <column name="id" type="bigint" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
-            <column name="date" type="date"><constraints nullable="false" unique="true"/></column>
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="date" type="date">
+                <constraints nullable="false" unique="true"/>
+            </column>
             <column name="gross" type="bigint"/>
             <column name="balance" type="bigint"/>
         </createTable>
 
         <createTable tableName="time_entry">
-            <column name="id" type="bigint" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
-            <column name="workday_id" type="bigint"><constraints nullable="false"/></column>
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workday_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
             <column name="start_ts" type="timestamp"/>
             <column name="end_ts" type="timestamp"/>
             <column name="duration" type="varchar(255)"/>
-            <column name="type" type="varchar(32)" defaultValue="STANDARD"><constraints nullable="false"/></column>
+            <column name="type" type="varchar(32)" defaultValue="STANDARD">
+                <constraints nullable="false"/>
+            </column>
         </createTable>
         <addForeignKeyConstraint baseTableName="time_entry" baseColumnNames="workday_id"
-                constraintName="fk_time_entry_workday" referencedTableName="workday" referencedColumnNames="id" onDelete="CASCADE"/>
-        <createIndex tableName="time_entry" indexName="idx_time_entry_workday_start"><column name="workday_id"/><column name="start_ts"/></createIndex>
+                                 constraintName="fk_time_entry_workday" referencedTableName="workday"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="time_entry" indexName="idx_time_entry_workday_start">
+            <column name="workday_id"/>
+            <column name="start_ts"/>
+        </createIndex>
 
         <createTable tableName="snapshot">
-            <column name="id" type="bigint"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
             <column name="workday_id" type="bigint"/>
         </createTable>
         <addForeignKeyConstraint baseTableName="snapshot" baseColumnNames="workday_id"
-                constraintName="fk_snapshot_workday" referencedTableName="workday" referencedColumnNames="id" onDelete="SET NULL"/>
-        <createIndex tableName="snapshot" indexName="idx_snapshot_workday"><column name="workday_id"/></createIndex>
+                                 constraintName="fk_snapshot_workday" referencedTableName="workday"
+                                 referencedColumnNames="id" onDelete="SET NULL"/>
+        <createIndex tableName="snapshot" indexName="idx_snapshot_workday">
+            <column name="workday_id"/>
+        </createIndex>
 
         <createTable tableName="setting">
-            <column name="id" type="bigint"><constraints primaryKey="true" nullable="false"/></column>
-            <column name="working_hours" type="bigint"><constraints nullable="false"/></column>
-            <column name="break_time" type="bigint"><constraints nullable="false"/></column>
-            <column name="working_days" type="bigint" defaultValueNumeric="31"><constraints nullable="false"/></column>
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="working_hours" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="break_time" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="working_days" type="bigint" defaultValueNumeric="31">
+                <constraints nullable="false"/>
+            </column>
         </createTable>
 
         <createTable tableName="event">
-            <column name="id" type="bigint" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
             <column name="title" type="varchar(255)"/>
-            <column name="all_day" type="boolean" defaultValueBoolean="true"><constraints nullable="false"/></column>
+            <column name="all_day" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
             <column name="type" type="varchar(100)"/>
             <column name="status" type="varchar(20)"/>
             <column name="start_date" type="date"/>
             <column name="end_date" type="date"/>
         </createTable>
-        <createIndex tableName="event" indexName="idx_event_start_end"><column name="start_date"/><column name="end_date"/></createIndex>
+        <createIndex tableName="event" indexName="idx_event_start_end">
+            <column name="start_date"/>
+            <column name="end_date"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="2-persist-holidays" author="clock-in">
+        <createTable tableName="holiday_sync">
+            <column name="year" type="integer">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="fetched_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
     </changeSet>
 </databaseChangeLog>

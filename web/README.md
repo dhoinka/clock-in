@@ -27,11 +27,11 @@ The development server uses `proxy.conf.js`: browser requests to `/api/**` are f
 
 ## Routes
 
-| Route | Component/behavior |
-| --- | --- |
-| `/` | Check-in/check-out status and totals |
-| `/bookings` | Monthly workday table, entry editing, holidays, and event booking |
-| `/calendar` | Compatibility redirect to `/bookings` |
+| Route       | Component/behavior                                                       |
+| ----------- | ------------------------------------------------------------------------ |
+| `/`         | Check-in/check-out status and totals                                     |
+| `/bookings` | Monthly workday table, entry editing, holidays, and event booking        |
+| `/calendar` | Compatibility redirect to `/bookings`                                    |
 | `/settings` | Working hours, break duration, working weekdays, theme, and data actions |
 
 The bookings table is the canonical history UI. Do not create a separate calendar editing implementation; extend the table and its dialogs.

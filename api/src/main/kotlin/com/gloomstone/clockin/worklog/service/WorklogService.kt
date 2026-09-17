@@ -36,33 +36,52 @@ class WorklogService(
     @Transactional
     fun recordEntry(): Status {
         val now = LocalDateTime.now(clock)
-        logger.info("time entry recorded")
+        val date = now.toLocalDate()
+        logger.info("Recording clock action, date={} timestamp={}", date, now)
 
-        snapshotService.invalidateFrom(now.toLocalDate())
-        val day = dayRepository.findByDate(now.toLocalDate()) ?: createDay(now.toLocalDate())
+        snapshotService.invalidateFrom(date)
+        val day = dayRepository.findByDate(date) ?: createDay(date)
 
         if (day.entries.isEmpty() || day.entries.last().end != null) {
             val timeEntry = TimeEntry(now, day)
             addEntry(day, timeEntry)
+            logger.info("Checked in, date={} entryId={} start={}", date, timeEntry.id, now)
         } else {
             val last = day.entries.last()
             last.end = now
-            logger.info("write booking, booking={}", last.id)
             timeEntryRepository.save(last)
+            logger.info(
+                "Checked out, date={} entryId={} start={} end={} duration={}",
+                date,
+                last.id,
+                last.start,
+                last.end,
+                last.start?.let { Duration.between(it, now) },
+            )
         }
-        logger.info("time entry recorded")
-        return calcStatus(day)
+        return calcStatus(day).also { status ->
+            logger.info(
+                "Clock action completed, date={} checkedIn={} gross={} balance={}",
+                date,
+                status.isCheckedIn,
+                status.gross,
+                status.balance,
+            )
+        }
     }
 
     @Transactional
     fun update(request: UpdateWorkdayRequest): Workday {
         val date = request.date
+        logger.info("Updating workday, date={} requestedEntries={}", date, request.entries.size)
         val validatedEntries = request.entries.map { validateEntry(it, date) }
-        if (validatedEntries.count { it is ValidatedEntry.Correction } > 1) {
-            throw BadRequestException("Only one correction entry is allowed per day")
+        val correctionCount = validatedEntries.count { it is ValidatedEntry.Correction }
+        if (correctionCount > 1) {
+            rejectUpdate(date, "Only one correction entry is allowed per day")
         }
         snapshotService.invalidateFrom(date)
         val day = dayRepository.findByDate(date) ?: createDay(date)
+        val replacedEntryCount = day.entries.size
 
         timeEntryRepository.deleteAll(day.entries)
 
@@ -74,8 +93,17 @@ class WorklogService(
 
         calcBalance()
 
-        return dayRepository.save(day).also {
-            logger.info("day updated, day={}", day.date)
+        return dayRepository.save(day).also { savedDay ->
+            logger.info(
+                "Workday updated, date={} replacedEntries={} savedEntries={} standardEntries={} correctionEntries={} gross={} balance={}",
+                date,
+                replacedEntryCount,
+                savedDay.entries.size,
+                validatedEntries.size - correctionCount,
+                correctionCount,
+                savedDay.gross,
+                savedDay.balance,
+            )
         }
     }
 
@@ -83,14 +111,14 @@ class WorklogService(
         when (entry.type) {
             EntryType.STANDARD.value -> {
                 val start = entry.start
-                    ?: throw BadRequestException("Standard entries require a start time")
+                    ?: rejectUpdate(date, "Standard entries require a start time", entry.type)
                 val end = entry.end
 
                 if (start.toLocalDate() != date || end?.toLocalDate()?.let { it != date } == true) {
-                    throw BadRequestException("Entry timestamps must be on $date")
+                    rejectUpdate(date, "Entry timestamps must be on $date", entry.type)
                 }
                 if (end?.isBefore(start) == true) {
-                    throw BadRequestException("Entry end time must not be before its start time")
+                    rejectUpdate(date, "Entry end time must not be before its start time", entry.type)
                 }
 
                 ValidatedEntry.Standard(start, end)
@@ -98,21 +126,26 @@ class WorklogService(
 
             EntryType.CORRECTION.value -> {
                 val duration = entry.duration
-                    ?: throw BadRequestException("Correction entries require a duration")
+                    ?: rejectUpdate(date, "Correction entries require a duration", entry.type)
                 if (duration.toDuration() == null) {
-                    throw BadRequestException("Invalid correction duration: $duration")
+                    rejectUpdate(date, "Invalid correction duration: $duration", entry.type)
                 }
                 ValidatedEntry.Correction(duration)
             }
 
-            else -> throw BadRequestException("Unknown entry type: ${entry.type}")
+            else -> rejectUpdate(date, "Unknown entry type: ${entry.type}", entry.type)
         }
+
+    private fun rejectUpdate(date: LocalDate, reason: String, entryType: String? = null): Nothing {
+        logger.info("Workday update rejected, date={} entryType={} reason={}", date, entryType, reason)
+        throw BadRequestException(reason)
+    }
 
     @Transactional
     fun createDay(date: LocalDate): Workday {
         val workday = Workday(date)
         return dayRepository.save(workday).also {
-            logger.info("day created, date={}", date)
+            logger.info("Created workday, date={} workdayId={}", date, it.id)
         }
     }
 
@@ -123,21 +156,40 @@ class WorklogService(
 
         timeEntryRepository.save(timeEntry)
         dayRepository.save(workday)
-        logger.info("Booking was added to day, day={} start={} end={}", workday.date, timeEntry.start, timeEntry.end)
+        logger.info(
+            "Added entry to workday, date={} workdayId={} entryId={} type={} start={} end={} duration={}",
+            workday.date,
+            workday.id,
+            timeEntry.id,
+            timeEntry.type,
+            timeEntry.start,
+            timeEntry.end,
+            timeEntry.duration,
+        )
     }
 
     @Transactional
     fun getBalance(): Status {
         val now = LocalDate.now(clock)
         val workday = dayRepository.findByDate(now) ?: Workday(now)
-        return calcStatus(workday)
+        return calcStatus(workday).also { status ->
+            logger.info(
+                "Current status loaded, date={} checkedIn={} gross={} balance={}",
+                now,
+                status.isCheckedIn,
+                status.gross,
+                status.balance,
+            )
+        }
     }
 
     @Transactional
     fun getEntries(month: LocalDate): List<Workday> {
         val start = month.withDayOfMonth(1)
         val end = month.with(TemporalAdjusters.lastDayOfMonth())
+        logger.info("Loading monthly worklog, month={} rangeStart={} rangeEnd={}", month.month, start, end)
 
+        holidayService.ensureYearLoaded(month.year)
         calcBalance()
 
         val days = dayRepository.findAllByDateGreaterThanEqualAndDateLessThanEqualOrderByDate(start, end)
@@ -158,7 +210,14 @@ class WorklogService(
             }
         }
         setEmptyDays(map)
-        return ArrayList(map.values.filterNotNull())
+        return ArrayList(map.values.filterNotNull()).also { result ->
+            logger.info(
+                "Monthly worklog loaded, month={} persistedDays={} returnedDays={}",
+                month.month,
+                days.size,
+                result.size,
+            )
+        }
     }
 
     @Transactional
@@ -169,7 +228,9 @@ class WorklogService(
             EntryType.STANDARD
         }
 
-        return timeEntryRepository.findAllByType(type)
+        return timeEntryRepository.findAllByType(type).also { entries ->
+            logger.info("Time entries loaded, requestedType={} resolvedType={} count={}", typeStr, type, entries.size)
+        }
     }
 
     private fun getSortedList(newLogEntries: List<TimeEntry>): List<TimeEntry> {
@@ -188,32 +249,18 @@ class WorklogService(
         }
     }
 
-    /**
-     * This method retrieves the holidays for a given date.
-     *
-     * @param date The date for which the holidays are to be retrieved.
-     * @return The first holiday that matches the given date, or null if no match is found.
-     *
-     * The method performs the following steps:
-     * 1. Calls the holidayService to get the holidays for the given date.
-     * 2. Returns the first holiday that matches the given date.
-     * 3. If an exception occurs during the process, it logs the error and returns null.
-     */
-    fun findHolidaysByDate(date: LocalDate): Holiday? {
-        return try {
-            holidayService.getHolidays(date).firstOrNull { it.date == date }
-        } catch (e: Exception) {
-            logger.error("findHolidaysByDate", e)
-            null
-        }
-    }
-
     @Transactional
     fun delete(id: Long) {
         val entry = timeEntryRepository.findById(id).orElseThrow()
         timeEntryRepository.delete(entry)
 
         snapshotService.delete()
+        logger.info(
+            "Deleted time entry and reset balance snapshot, entryId={} date={} type={}",
+            id,
+            entry.workday?.date,
+            entry.type,
+        )
     }
 
     @Transactional
@@ -221,7 +268,7 @@ class WorklogService(
         timeEntryRepository.deleteAll()
         dayRepository.deleteAll()
         snapshotService.delete()
-        logger.info("All bookings and days deleted")
+        logger.info("Deleted all time entries and workdays and reset balance snapshot")
     }
 
 
@@ -229,6 +276,7 @@ class WorklogService(
     @Transactional
     fun calcStatus(workday: Workday): Status {
         if (workday.entries.isEmpty()) {
+            logger.info("Calculated empty workday status, date={}", workday.date)
             return Status(
                 false,
                 Duration.ZERO,
@@ -242,7 +290,16 @@ class WorklogService(
             checkedIn,
             foundDay.gross ?: Duration.ZERO,
             foundDay.balance ?: Duration.ZERO,
-        )
+        ).also { status ->
+            logger.info(
+                "Calculated workday status, date={} entries={} checkedIn={} gross={} balance={}",
+                foundDay.date,
+                foundDay.entries.size,
+                status.isCheckedIn,
+                status.gross,
+                status.balance,
+            )
+        }
     }
 
     /** Loads the worklog, applies deterministic calculations, and persists the resulting totals. */
@@ -251,16 +308,33 @@ class WorklogService(
         val settings = settingService.get()
         val now = LocalDateTime.now(clock)
 
+        val firstRelevantYear = dayRepository.findFirstByOrderByDateAsc()?.date?.year ?: now.year
+        (firstRelevantYear..now.year).forEach(holidayService::ensureYearLoaded)
+
         val snapshot = snapshotService.get()
 
-        logger.debug("found snapshot {}", snapshot)
-
         val snapshotWorkday = snapshot.workday
+        logger.info(
+            "Starting balance recalculation, now={} snapshotDate={} snapshotBalance={} workingHours={} breakTime={} workingDaysMask={}",
+            now,
+            snapshotWorkday?.date,
+            snapshotWorkday?.balance,
+            settings.workingHours,
+            settings.breakTime,
+            settings.workingDays,
+        )
         val workdays: List<Workday> = if (snapshotWorkday == null) {
             dayRepository.findAllByOrderByDate()
         } else {
             dayRepository.findAllByDateGreaterThanEqualOrderByDate(snapshotWorkday.date)
         }
+        logger.info(
+            "Loaded workdays for balance recalculation, mode={} count={} firstDate={} lastDate={}",
+            if (snapshotWorkday == null) "full" else "from-snapshot",
+            workdays.size,
+            workdays.firstOrNull()?.date,
+            workdays.lastOrNull()?.date,
+        )
 
         val localDateDayMap = calcDays(workdays)
 
@@ -295,12 +369,30 @@ class WorklogService(
             value.gross = totals.gross
             value.balance = totals.balance
             previousBalance = totals.balance
+            logger.info(
+                "Calculated day, date={} entries={} isWorkday={} snapshotApplied={} gross={} balance={}",
+                value.date,
+                value.entries.size,
+                workday,
+                value.date == snapshotWorkday?.date,
+                totals.gross,
+                totals.balance,
+            )
         }
         dayRepository.saveAll(workdays)
 
-        localDateDayMap.values.filterNotNull().lastOrNull()?.let(snapshotService::advanceTo)
+        val calculatedDays = localDateDayMap.values.filterNotNull()
+        calculatedDays.lastOrNull()?.let(snapshotService::advanceTo)
 
-        return ArrayList(localDateDayMap.values.filterNotNull())
+        logger.info(
+            "Balance recalculation completed, calculatedDays={} persistedDays={} snapshotAdvancedTo={} finalBalance={}",
+            calculatedDays.size,
+            workdays.size,
+            calculatedDays.lastOrNull()?.date,
+            calculatedDays.lastOrNull()?.balance,
+        )
+
+        return ArrayList(calculatedDays)
     }
 
     private fun calcDays(workdays: List<Workday>): MutableMap<LocalDate, Workday?> {
@@ -325,14 +417,17 @@ class WorklogService(
         val dayFlag = 1L shl (workday.date.dayOfWeek.value - 1)
         val workDay = workingDays and dayFlag != 0L
         if (!workDay) {
-            return false
-        }
-        val holiday = findHolidaysByDate(workday.date)
-        if (holiday != null) {
+            logger.info("Classified non-workday, date={} reason=working-day-schedule", workday.date)
             return false
         }
         val event = eventService.findByDate(workday.date)
-        return event.isEmpty()
+        if (event.isNotEmpty()) {
+            val reason = if (event.any { it.type == EventType.HOLIDAY }) "holiday" else "event"
+            logger.info("Classified non-workday, date={} reason={} eventCount={}", workday.date, reason, event.size)
+            return false
+        }
+        logger.info("Classified workday, date={}", workday.date)
+        return true
     }
 
     private fun isCheckedIn(workday: Workday): Boolean {

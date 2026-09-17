@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export type EntryType = 'standard' | 'correction';
-export type EventType = 'none' | 'vacation' | 'sick' | 'other';
+export type EventType = 'none' | 'vacation' | 'sick' | 'other' | 'holiday';
 export type EventStatus = 'new' | 'approved';
 
 export const statusResponseSchema = z.object({
@@ -71,14 +71,6 @@ export interface Event {
   end: Date;
   allDay: boolean;
 }
-
-export const holidaySchema = z.object({
-  date: z.string(),
-  name: z.string(),
-  allStates: z.boolean(),
-});
-
-export type Holiday = z.infer<typeof holidaySchema>;
 
 export interface Stat {
   avgStart: number | null;

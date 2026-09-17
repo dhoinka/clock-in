@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { endOfMonth } from 'date-fns';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Event, Holiday, Workday } from '@/core/models/worklog.model';
+import { Event, Workday } from '@/core/models/worklog.model';
 import { EventService } from '@/core/services/event.service';
 import { WorklogService } from '@/core/services/worklog.service';
 import { ZardDialogService } from '@/shared/components/dialog';
@@ -14,7 +14,6 @@ describe('BookingsComponent', () => {
   };
   const eventService = {
     getEvents: vi.fn(),
-    getHolidays: vi.fn(),
   };
 
   const workday: Workday = {
@@ -35,14 +34,23 @@ describe('BookingsComponent', () => {
     allDay: true,
   };
 
+  const holiday: Event = {
+    id: 4,
+    title: 'Regional holiday',
+    type: 'holiday',
+    status: 'approved',
+    start: new Date(2026, 8, 4),
+    end: new Date(2026, 8, 4),
+    allDay: true,
+  };
+
   let fixture: ComponentFixture<BookingsComponent>;
   let component: BookingsComponent;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     worklogService.getWorkdaysByMonth.mockResolvedValue([workday]);
-    eventService.getEvents.mockResolvedValue([leave]);
-    eventService.getHolidays.mockResolvedValue([]);
+    eventService.getEvents.mockResolvedValue([leave, holiday]);
     await TestBed.configureTestingModule({
       imports: [BookingsComponent],
       providers: [
@@ -55,7 +63,7 @@ describe('BookingsComponent', () => {
     component = fixture.componentInstance;
   });
 
-  it('loads workdays, events, and holidays together and keeps overlapping ranges', async () => {
+  it('loads workdays and all events together and keeps overlapping ranges', async () => {
     component.currentMonth.set(new Date(2026, 8, 1));
     await component.loadBookings();
 
@@ -64,19 +72,12 @@ describe('BookingsComponent', () => {
       from: new Date(2026, 8, 1),
       to: endOfMonth(new Date(2026, 8, 1)),
     });
-    expect(eventService.getHolidays).toHaveBeenCalledOnce();
     expect(component.bookingsMonth()).toEqual([workday]);
-    expect(component.events()).toEqual([leave]);
+    expect(component.events()).toEqual([leave, holiday]);
   });
 
   it('shows inclusive multi-day event progress and read-only holidays on each row', () => {
-    const holiday: Holiday = {
-      date: '2026-09-04',
-      name: 'Regional holiday',
-      allStates: false,
-    };
-    component.events.set([leave]);
-    component.holidays.set([holiday]);
+    component.events.set([leave, holiday]);
 
     expect(component.displayEvents(workday)).toEqual([
       {
@@ -87,9 +88,11 @@ describe('BookingsComponent', () => {
         dayLabel: 'Day 2 of 3',
       },
       {
-        key: 'holiday-2026-09-04-Regional holiday',
+        key: 'event-4',
         kind: 'holiday',
         title: 'Regional holiday',
+        event: holiday,
+        dayLabel: undefined,
       },
     ]);
   });

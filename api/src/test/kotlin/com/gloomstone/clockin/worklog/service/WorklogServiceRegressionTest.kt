@@ -1,32 +1,18 @@
 package com.gloomstone.clockin.worklog.service
 
-import com.gloomstone.clockin.worklog.domain.EntryType
-import com.gloomstone.clockin.worklog.domain.Setting
-import com.gloomstone.clockin.worklog.domain.Snapshot
-import com.gloomstone.clockin.worklog.domain.TimeEntry
-import com.gloomstone.clockin.worklog.domain.Workday
+import com.gloomstone.clockin.shared.exception.BadRequestException
+import com.gloomstone.clockin.worklog.domain.*
 import com.gloomstone.clockin.worklog.dto.TimeEntryResponse
 import com.gloomstone.clockin.worklog.dto.UpdateWorkdayRequest
 import com.gloomstone.clockin.worklog.repository.DayRepository
 import com.gloomstone.clockin.worklog.repository.TimeEntryRepository
-import com.gloomstone.clockin.shared.exception.BadRequestException
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.times
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.time.Clock
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.util.Optional
+import org.mockito.kotlin.*
+import java.time.*
+import java.util.*
 
 class WorklogServiceRegressionTest {
     private val entries: TimeEntryRepository = mock()
@@ -45,7 +31,6 @@ class WorklogServiceRegressionTest {
         whenever(settings.get()).thenReturn(Setting(Duration.ofHours(8), Duration.ofMinutes(30), 31))
         whenever(snapshots.get()).thenReturn(Snapshot())
         whenever(events.findByDate(any())).thenReturn(emptyList())
-        whenever(holidays.getHolidays(any())).thenReturn(emptyList())
         whenever(days.save(any<Workday>())).thenAnswer { it.arguments[0] }
     }
 
@@ -54,9 +39,15 @@ class WorklogServiceRegressionTest {
         val day = Workday(date)
         whenever(days.findByDate(date)).thenReturn(day)
         whenever(days.findAllByOrderByDate()).thenReturn(listOf(day))
-        val request = UpdateWorkdayRequest(date, listOf(
-            TimeEntryResponse(EntryType.STANDARD.value, LocalDateTime.of(2026, 9, 8, 8, 0), LocalDateTime.of(2026, 9, 8, 15, 0))
-        ))
+        val request = UpdateWorkdayRequest(
+            date, listOf(
+                TimeEntryResponse(
+                    EntryType.STANDARD.value,
+                    LocalDateTime.of(2026, 9, 8, 8, 0),
+                    LocalDateTime.of(2026, 9, 8, 15, 0)
+                )
+            )
+        )
 
         val updated = service.update(request)
 
@@ -79,15 +70,49 @@ class WorklogServiceRegressionTest {
     }
 
     @Test
+    fun `balance synchronizes holidays before reading the snapshot and treats them as non-workdays`() {
+        val day = Workday(date)
+        val holiday = Event(
+            title = "Regional holiday",
+            type = EventType.HOLIDAY,
+            start = date,
+            end = date,
+            status = EventStatus.APPROVED,
+        )
+        whenever(days.findFirstByOrderByDateAsc()).thenReturn(day)
+        whenever(days.findAllByOrderByDate()).thenReturn(listOf(day))
+        whenever(events.findByDate(date)).thenReturn(listOf(holiday))
+
+        val result = service.calcBalance()
+
+        assertThat(result.single().isWorkday).isFalse()
+        assertThat(result.single().balance).isEqualTo(Duration.ZERO)
+        inOrder(holidays, snapshots) {
+            verify(holidays).ensureYearLoaded(2026)
+            verify(snapshots).get()
+        }
+    }
+
+    @Test
     fun `global update applies correction entries to the running balance`() {
         val day = Workday(date)
         whenever(days.findByDate(date)).thenReturn(day)
         whenever(days.findAllByOrderByDate()).thenReturn(listOf(day))
-        val request = UpdateWorkdayRequest(date, listOf(
-            TimeEntryResponse(EntryType.STANDARD.value, LocalDateTime.of(2026, 9, 8, 8, 0), LocalDateTime.of(2026, 9, 8, 12, 0)),
-            TimeEntryResponse(EntryType.STANDARD.value, LocalDateTime.of(2026, 9, 8, 12, 0), LocalDateTime.of(2026, 9, 8, 16, 0)),
-            TimeEntryResponse(EntryType.CORRECTION.value, duration = "-1h")
-        ))
+        val request = UpdateWorkdayRequest(
+            date, listOf(
+                TimeEntryResponse(
+                    EntryType.STANDARD.value,
+                    LocalDateTime.of(2026, 9, 8, 8, 0),
+                    LocalDateTime.of(2026, 9, 8, 12, 0)
+                ),
+                TimeEntryResponse(
+                    EntryType.STANDARD.value,
+                    LocalDateTime.of(2026, 9, 8, 12, 0),
+                    LocalDateTime.of(2026, 9, 8, 16, 0)
+                ),
+                TimeEntryResponse(EntryType.CORRECTION.value, duration = "-1h")
+            )
+        )
 
         val updated = service.update(request)
 
@@ -96,10 +121,12 @@ class WorklogServiceRegressionTest {
 
     @Test
     fun `global update rejects more than one correction entry`() {
-        val request = UpdateWorkdayRequest(date, listOf(
-            TimeEntryResponse(EntryType.CORRECTION.value, duration = "-1h"),
-            TimeEntryResponse(EntryType.CORRECTION.value, duration = "30m"),
-        ))
+        val request = UpdateWorkdayRequest(
+            date, listOf(
+                TimeEntryResponse(EntryType.CORRECTION.value, duration = "-1h"),
+                TimeEntryResponse(EntryType.CORRECTION.value, duration = "30m"),
+            )
+        )
 
         assertThatThrownBy { service.update(request) }
             .isInstanceOf(BadRequestException::class.java)
@@ -110,9 +137,11 @@ class WorklogServiceRegressionTest {
 
     @Test
     fun `update validates every entry before modifying persisted data`() {
-        val request = UpdateWorkdayRequest(date, listOf(
-            TimeEntryResponse("unexpected"),
-        ))
+        val request = UpdateWorkdayRequest(
+            date, listOf(
+                TimeEntryResponse("unexpected"),
+            )
+        )
 
         assertThatThrownBy { service.update(request) }
             .isInstanceOf(BadRequestException::class.java)
@@ -124,9 +153,11 @@ class WorklogServiceRegressionTest {
 
     @Test
     fun `update rejects malformed correction durations`() {
-        val request = UpdateWorkdayRequest(date, listOf(
-            TimeEntryResponse(EntryType.CORRECTION.value, duration = "not-a-duration"),
-        ))
+        val request = UpdateWorkdayRequest(
+            date, listOf(
+                TimeEntryResponse(EntryType.CORRECTION.value, duration = "not-a-duration"),
+            )
+        )
 
         assertThatThrownBy { service.update(request) }
             .isInstanceOf(BadRequestException::class.java)
@@ -137,13 +168,15 @@ class WorklogServiceRegressionTest {
 
     @Test
     fun `update rejects an end time before its start time`() {
-        val request = UpdateWorkdayRequest(date, listOf(
-            TimeEntryResponse(
-                EntryType.STANDARD.value,
-                start = LocalDateTime.of(2026, 9, 8, 12, 0),
-                end = LocalDateTime.of(2026, 9, 8, 8, 0),
-            ),
-        ))
+        val request = UpdateWorkdayRequest(
+            date, listOf(
+                TimeEntryResponse(
+                    EntryType.STANDARD.value,
+                    start = LocalDateTime.of(2026, 9, 8, 12, 0),
+                    end = LocalDateTime.of(2026, 9, 8, 8, 0),
+                ),
+            )
+        )
 
         assertThatThrownBy { service.update(request) }
             .isInstanceOf(BadRequestException::class.java)

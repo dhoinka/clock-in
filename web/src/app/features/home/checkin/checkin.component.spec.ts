@@ -30,9 +30,7 @@ describe('CheckinComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [CheckinComponent],
-      providers: [
-        { provide: WorklogService, useValue: worklogServiceMock },
-      ],
+      providers: [{ provide: WorklogService, useValue: worklogServiceMock }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(CheckinComponent);
