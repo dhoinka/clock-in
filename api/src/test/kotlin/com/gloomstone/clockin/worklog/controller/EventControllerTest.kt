@@ -9,20 +9,23 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import org.springframework.http.MediaType
 import java.time.LocalDate
 
 @WebMvcTest(EventController::class)
 class EventControllerTest {
-    @Autowired lateinit var mvc: MockMvc
-    @MockitoBean lateinit var service: EventService
-    @MockitoBean lateinit var mapper: EventMapper
+    @Autowired
+    lateinit var mvc: MockMvc
+    @MockitoBean
+    lateinit var service: EventService
+    @MockitoBean
+    lateinit var mapper: EventMapper
 
     @Test
     fun `filters events using the requested inclusive date range`() {

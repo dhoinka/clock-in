@@ -16,12 +16,11 @@ import {
   getDate,
   isSameDay,
   isSameMonth,
-  parseISO,
   startOfMonth,
   startOfWeek,
 } from 'date-fns';
 
-import { Event, Holiday } from '@/core/models/worklog.model';
+import { Event } from '@/core/models/worklog.model';
 import { EventService } from '@/core/services/event.service';
 import { ZardButtonComponent } from '@/shared/components/button';
 import { ZardDialogService } from '@/shared/components/dialog';
@@ -40,10 +39,7 @@ export interface CalendarDay {
 }
 
 export type EventIconName =
-  | 'lucideUmbrella'
-  | 'lucideHeartPulse'
-  | 'lucideSparkles'
-  | 'lucideFlag';
+  'lucideUmbrella' | 'lucideHeartPulse' | 'lucideSparkles' | 'lucideFlag';
 
 export interface CalendarSegment {
   readonly id: string;
@@ -79,7 +75,6 @@ export class CalendarComponent implements OnInit {
   readonly format = format;
   readonly currentMonth = signal<Date>(startOfMonth(new Date()));
   readonly events = signal<Event[]>([]);
-  readonly holidays = signal<Holiday[]>([]);
   readonly loading = signal<boolean>(true);
   readonly loadError = signal<string>('');
 
@@ -100,7 +95,6 @@ export class CalendarComponent implements OnInit {
     const currentMonthDate = this.currentMonth();
     const today = new Date();
     const allEvents = this.events();
-    const allHolidays = this.holidays();
 
     const weeksList: CalendarWeek[] = [];
 
@@ -152,7 +146,7 @@ export class CalendarComponent implements OnInit {
 
           rawSegments.push({
             id: `event-${event.id}-${w}`,
-            kind: 'event',
+            kind: event.type === 'holiday' ? 'holiday' : 'event',
             title: event.title,
             type: event.type,
             event,
@@ -164,29 +158,6 @@ export class CalendarComponent implements OnInit {
             colorClass: this.eventColorClass(event.type),
             iconName: this.eventIconName(event.type),
           });
-        }
-      }
-
-      for (const holiday of allHolidays) {
-        const weekStartKey = format(weekStart, 'yyyy-MM-dd');
-        const weekEndKey = format(weekEnd, 'yyyy-MM-dd');
-        if (holiday.date >= weekStartKey && holiday.date <= weekEndKey) {
-          const holidayDate = parseISO(holiday.date);
-          const dayIndex = differenceInCalendarDays(holidayDate, weekStart);
-          if (dayIndex >= 0 && dayIndex <= 6) {
-            rawSegments.push({
-              id: `holiday-${holiday.date}-${holiday.name}-${w}`,
-              kind: 'holiday',
-              title: holiday.name,
-              startIndex: dayIndex,
-              endIndex: dayIndex,
-              span: 1,
-              continuesBefore: false,
-              continuesAfter: false,
-              colorClass: 'bg-red-500/90 dark:bg-red-600 hover:bg-red-500 text-white',
-              iconName: 'lucideFlag',
-            });
-          }
         }
       }
 
@@ -269,29 +240,16 @@ export class CalendarComponent implements OnInit {
     this.loadError.set('');
 
     try {
-      const years = Array.from(
-        new Set([start.getFullYear(), end.getFullYear()]),
-      );
-      const [events, holidaysArrays] = await Promise.all([
-        this.eventService.getEvents({ from: start, to: end }),
-        Promise.all(
-          years.map((year) =>
-            this.eventService.getHolidays(new Date(year, 0, 1)),
-          ),
-        ),
-      ]);
+      const events = await this.eventService.getEvents({
+        from: start,
+        to: end,
+      });
 
       if (monthKey !== format(this.currentMonth(), 'yyyy-MM')) {
         return;
       }
 
-      const holidayMap = new Map<string, Holiday>();
-      for (const h of holidaysArrays.flat()) {
-        holidayMap.set(`${h.date}-${h.name}`, h);
-      }
-
       this.events.set(events);
-      this.holidays.set(Array.from(holidayMap.values()));
     } catch (error) {
       console.error('Failed to load calendar data:', error);
       if (monthKey === format(this.currentMonth(), 'yyyy-MM')) {
@@ -310,9 +268,7 @@ export class CalendarComponent implements OnInit {
     const today = new Date();
     const initialDate =
       date ??
-      (isSameMonth(today, this.currentMonth())
-        ? today
-        : this.currentMonth());
+      (isSameMonth(today, this.currentMonth()) ? today : this.currentMonth());
     this.openEventDialog(initialDate);
   }
 
@@ -354,6 +310,8 @@ export class CalendarComponent implements OnInit {
         return 'bg-blue-600 dark:bg-blue-600 hover:bg-blue-500 text-white';
       case 'sick':
         return 'bg-red-600 dark:bg-red-600 hover:bg-red-500 text-white';
+      case 'holiday':
+        return 'bg-red-500/90 dark:bg-red-600 hover:bg-red-500 text-white';
       default:
         return 'bg-indigo-600 dark:bg-indigo-600 hover:bg-indigo-500 text-white';
     }
@@ -365,6 +323,8 @@ export class CalendarComponent implements OnInit {
         return 'lucideUmbrella';
       case 'sick':
         return 'lucideHeartPulse';
+      case 'holiday':
+        return 'lucideFlag';
       default:
         return 'lucideSparkles';
     }

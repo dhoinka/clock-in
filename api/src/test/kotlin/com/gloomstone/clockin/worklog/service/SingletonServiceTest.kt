@@ -7,14 +7,10 @@ import com.gloomstone.clockin.worklog.repository.SettingRepository
 import com.gloomstone.clockin.worklog.repository.SnapshotRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.time.Duration
 import java.time.LocalDate
-import java.util.Optional
+import java.util.*
 
 class SingletonServiceTest {
     private val settingRepository: SettingRepository = mock()

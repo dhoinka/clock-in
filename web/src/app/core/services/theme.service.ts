@@ -12,10 +12,7 @@ export class ThemeService {
 
   loadTheme(): void {
     const saved = localStorage.getItem('theme') as
-      | 'light'
-      | 'dark'
-      | 'system'
-      | null;
+      'light' | 'dark' | 'system' | null;
     if (saved) {
       this.theme.set(saved);
       this.applyTheme(saved);

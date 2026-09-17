@@ -4,7 +4,8 @@ enum class EventType(val value: String) {
     NONE("none"),
     SICK("sick"),
     VACATION("vacation"),
-    OTHER("other");
+    OTHER("other"),
+    HOLIDAY("holiday");
 
     companion object {
         fun fromValue(value: String): EventType {

@@ -9,8 +9,6 @@ import com.gloomstone.clockin.worklog.dto.EventDto
 import com.gloomstone.clockin.worklog.mapper.EventMapper
 import com.gloomstone.clockin.worklog.repository.EventRepository
 import jakarta.transaction.Transactional
-import org.springframework.cache.annotation.CacheEvict
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 
@@ -19,18 +17,19 @@ class EventService(
     private val repository: EventRepository,
     private val mapper: EventMapper,
     private val snapshotService: SnapshotService,
+    private val holidayService: HolidayService,
 ) {
     fun findAll(): List<Event> {
-      return repository.findAllByOrderByStart()
+        return repository.findAllByOrderByStart()
     }
 
     fun findAll(from: LocalDate, to: LocalDate): List<Event> {
         validateRange(from, to)
+        (from.year..to.year).forEach(holidayService::ensureYearLoaded)
         return repository.findAllOverlappingRange(from, to)
     }
 
     @Transactional
-    @CacheEvict(value = ["events"], allEntries = true)
     fun create(request: EventDto): Event {
         validateEvent(request)
         val event = mapper.toEntity(request).apply {
@@ -42,13 +41,13 @@ class EventService(
     }
 
     @Transactional
-    @CacheEvict(value = ["events"], allEntries = true)
     fun update(request: EventDto): Event {
         val id = request.id
             ?: throw BadRequestException("Event id is required")
 
         validateEvent(request)
         val event = repository.findById(id).orElseThrow { NotFoundException("Event not found") }
+        rejectHolidayMutation(event)
         event.title = request.title
         event.type = eventType(requireNotNull(request.type))
         event.start = request.start
@@ -58,15 +57,20 @@ class EventService(
     }
 
     @Transactional
-    @CacheEvict(value = ["events"], allEntries = true)
     fun delete(id: Long) {
         val event = repository.findById(id).orElseThrow { NotFoundException("Event not found") }
+        rejectHolidayMutation(event)
         repository.delete(event)
         snapshotService.delete()
     }
 
-    @Cacheable(value = ["events"], key = "#date")
     fun findByDate(date: LocalDate): List<Event> = repository.findAllOverlappingRange(date, date)
+
+    private fun rejectHolidayMutation(event: Event) {
+        if (event.type == EventType.HOLIDAY) {
+            throw BadRequestException("Holiday events are read-only")
+        }
+    }
 
     private fun validateEvent(request: EventDto) {
         if (request.title.isNullOrBlank()) {
@@ -90,6 +94,6 @@ class EventService(
     }
 
     private fun eventType(value: String): EventType =
-        EventType.entries.firstOrNull { it.value == value }
+        EventType.entries.firstOrNull { it != EventType.HOLIDAY && it.value == value }
             ?: throw BadRequestException("Invalid event type")
 }

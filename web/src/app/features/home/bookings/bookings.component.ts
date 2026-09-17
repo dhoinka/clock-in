@@ -17,7 +17,7 @@ import {
   startOfMonth,
 } from 'date-fns';
 
-import { Event, Holiday, Workday } from '@/core/models/worklog.model';
+import { Event, Workday } from '@/core/models/worklog.model';
 import { EventService } from '@/core/services/event.service';
 import { WorklogService } from '@/core/services/worklog.service';
 import { ZardButtonComponent } from '@/shared/components/button';
@@ -65,7 +65,6 @@ export class BookingsComponent implements OnInit {
   readonly currentMonth = signal(startOfMonth(new Date()));
   readonly bookingsMonth = signal<Workday[]>([]);
   readonly events = signal<Event[]>([]);
-  readonly holidays = signal<Holiday[]>([]);
   readonly loading = signal(true);
   readonly loadError = signal('');
 
@@ -96,13 +95,12 @@ export class BookingsComponent implements OnInit {
     this.loading.set(true);
     this.loadError.set('');
     try {
-      const [workdays, events, holidays] = await Promise.all([
+      const [workdays, events] = await Promise.all([
         this.worklogService.getWorkdaysByMonth(monthKey),
         this.eventService.getEvents({
           from: startOfMonth(month),
           to: endOfMonth(month),
         }),
-        this.eventService.getHolidays(month),
       ]);
 
       // Ignore a slower response after the user has already moved months.
@@ -111,7 +109,6 @@ export class BookingsComponent implements OnInit {
       }
       this.bookingsMonth.set(workdays);
       this.events.set(events);
-      this.holidays.set(holidays);
     } catch (error) {
       console.error('Failed to load bookings:', error);
       if (monthKey === this.selectedMonth()) {
@@ -150,19 +147,13 @@ export class BookingsComponent implements OnInit {
       .filter((event) => this.isEventOnDate(event, date))
       .map((event) => ({
         key: `event-${event.id}`,
-        kind: 'event' as const,
+        kind:
+          event.type === 'holiday' ? ('holiday' as const) : ('event' as const),
         title: event.title,
         event,
         dayLabel: this.eventDayLabel(event, row.date),
       }));
-    const holidays = this.holidays()
-      .filter((holiday) => holiday.date === date)
-      .map((holiday) => ({
-        key: `holiday-${holiday.date}-${holiday.name}`,
-        kind: 'holiday' as const,
-        title: holiday.name,
-      }));
-    return [...events, ...holidays];
+    return events;
   }
 
   eventBadgeClass(event: Event): string {
