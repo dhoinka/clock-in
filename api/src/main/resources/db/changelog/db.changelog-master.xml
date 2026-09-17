@@ -87,7 +87,7 @@
 
     <changeSet id="2-persist-holidays" author="clock-in">
         <createTable tableName="holiday_sync">
-            <column name="year" type="integer">
+            <column name="sync_year" type="integer">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
             <column name="fetched_at" type="timestamp">

@@ -11,6 +11,7 @@ import java.time.LocalDateTime
 @Table(name = "holiday_sync")
 class HolidaySync(
     @Id
+    @Column(name = "sync_year")
     val year: Int,
 
     @Column(name = "fetched_at", nullable = false)
