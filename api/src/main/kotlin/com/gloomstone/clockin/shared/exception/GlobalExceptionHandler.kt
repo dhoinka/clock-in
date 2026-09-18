@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.servlet.resource.NoResourceFoundException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -15,8 +16,8 @@ class GlobalExceptionHandler {
         return response(HttpStatus.BAD_REQUEST, exception.message)
     }
 
-    @ExceptionHandler(NotFoundException::class)
-    fun notFound(exception: NotFoundException): ResponseEntity<ErrorResponse> {
+    @ExceptionHandler(NotFoundException::class, NoResourceFoundException::class)
+    fun notFound(exception: Exception): ResponseEntity<ErrorResponse> {
         return response(HttpStatus.NOT_FOUND, exception.message)
     }
 
