@@ -9,7 +9,7 @@ Clock In is a single-user worklog consisting of a Kotlin/Spring Boot API, an Ang
 | `web/` | Angular 21, TypeScript, Tailwind CSS | Check-in UI, bookings table, event and entry editing, settings |
 | `api/` | Kotlin, Spring Boot 4, Spring Data JPA | Worklog API, validation, balance calculation, snapshots, holiday integration |
 | `postgres` | PostgreSQL 18 | Workdays, time entries, events, settings, and the balance snapshot |
-| `traefik` | Traefik 3 | Serves the web app and routes `/api/**` to the API |
+| `caddy` | Caddy 2 | Serves the web app and routes `/api/**` to the API |
 
 The application has no authentication or per-user ownership model. It is intended for one person and must be placed behind an authenticated reverse proxy or restricted to a trusted network when deployed.
 
@@ -31,7 +31,7 @@ export POSTGRES_PASSWORD='replace-with-a-secure-value'
 docker compose up -d
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Traefik sends `/api/**` to the API after removing the `/api` prefix and sends all other paths to the web container.
+Open [http://localhost:3000](http://localhost:3000). Caddy sends `/api/**` to the API after removing the `/api` prefix and sends all other paths to the web container. These two routes are defined explicitly in `Caddyfile`; Caddy does not need access to the Docker socket.
 
 `docker-compose.yml` pulls the `ghcr.io/dhoinka/clock-in/api` and `ghcr.io/dhoinka/clock-in/web` images; it does not build the current checkout. PostgreSQL data is retained in the `postgres-data` volume.
 
@@ -76,7 +76,7 @@ See [`api/README.md`](api/README.md) and [`web/README.md`](web/README.md) for co
 
 ## CI and images
 
-Pushes to `main` run backend and frontend tests, build both container images, and publish `latest` plus commit-SHA tags to GitHub Container Registry. The API image is produced with Spring Boot Buildpacks; the frontend image is built by `web/Dockerfile` and served by Nginx.
+Pushes to `main` run backend and frontend tests, build both container images for AMD64 and ARM64, and publish multi-platform `latest` plus commit-SHA tags to GitHub Container Registry. The API image packages the Spring Boot JAR on Eclipse Temurin, while the frontend image is served by Nginx.
 
 ## License
 

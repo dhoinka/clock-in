@@ -1,10 +1,12 @@
 package com.gloomstone.clockin.shared.logging
 
+import com.google.common.base.Stopwatch
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import org.springframework.util.StopWatch
 import org.springframework.web.filter.OncePerRequestFilter
 
 @Component
@@ -16,18 +18,19 @@ class RequestLoggingFilter : OncePerRequestFilter() {
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
-        val startedAt = System.nanoTime()
+
+        val sw = Stopwatch.createStarted()
 
         try {
             filterChain.doFilter(request, response)
         } finally {
-            val durationMs = (System.nanoTime() - startedAt) / 1_000_000
+            sw.stop()
             requestLogger.info(
-                "{} {} -> {} ({} ms)",
+                "{} {} -> {} ({})",
                 request.method,
                 request.requestURI,
                 response.status,
-                durationMs,
+                sw.toString(),
             )
         }
     }

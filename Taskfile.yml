@@ -8,3 +8,8 @@ tasks:
     desc: Start the services needed for local development
     cmds:
       - docker compose -f docker-compose.dev.yml up -d
+
+  start:
+    desc: Start the services
+    cmds:
+      - docker compose up -d

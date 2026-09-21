@@ -4,7 +4,7 @@
 
 - `api/`: Kotlin, Spring Boot, Gradle, PostgreSQL, and Liquibase.
 - `web/`: Angular and TypeScript frontend.
-- `docker-compose.yml`: published web/API images, PostgreSQL, and Traefik routing for the integrated stack.
+- `docker-compose.yml`: published web/API images, PostgreSQL, and Caddy routing for the integrated stack.
 - `.github/workflows/build.yml`: main-branch build, test, image publishing, and package cleanup.
 
 ## Current product behavior
