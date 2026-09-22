@@ -24,6 +24,8 @@ class RequestLoggingFilterTest {
 
         filter.doFilter(request, response, chain)
 
-        assertThat(output.out).containsPattern("GET /workdays -> 204 \\(\\d+ ms\\)")
+        assertThat(output.out).containsPattern(
+            "GET /workdays -> 204 \\([\\d.]+ (?:ns|μs|ms|s|min|h|d)\\)",
+        )
     }
 }

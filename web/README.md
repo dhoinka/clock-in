@@ -83,4 +83,4 @@ Use the `@/*` TypeScript alias for imports rooted at `src/app`. Preserve strict 
 
 ## Production image
 
-`web/Dockerfile` performs a production Angular build with Node 24, copies `dist/client/browser` into Nginx, and configures SPA fallback to `index.html`. API routing is not handled by that Nginx container; Traefik supplies `/api` routing in the integrated deployment.
+`web/Dockerfile` performs a production Angular build with Node 24, copies `dist/client/browser` into Nginx, and configures SPA fallback to `index.html`. API routing is not handled by that Nginx container; Caddy supplies `/api` routing in the integrated deployment.

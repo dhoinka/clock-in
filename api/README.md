@@ -10,7 +10,7 @@ The Clock In API is a Kotlin/Spring Boot 4 service for a single global worklog. 
 - PostgreSQL 18 in production
 - H2 for tests
 
-The service listens on port 8080 by default. Endpoint mappings do not contain an `/api` prefix; the frontend development proxy and Traefik add that external routing prefix.
+The service listens on port 8080 by default. Endpoint mappings do not contain an `/api` prefix; the frontend development proxy and Caddy add that external routing prefix.
 
 ## Running and verification
 

@@ -27,6 +27,7 @@ dependencies {
 
     // Third-party Libraries
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("com.google.guava:guava:33.7.1-jre")
 
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -57,6 +58,10 @@ kotlin {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.bootJar {
+    archiveFileName.set("app.jar")
 }
 
 tasks.jar {
