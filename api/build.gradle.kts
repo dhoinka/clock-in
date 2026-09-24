@@ -38,7 +38,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 
     testImplementation("net.datafaker:datafaker:2.7.0")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:6.3.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:6.4.0")
 }
 
 
