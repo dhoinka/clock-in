@@ -27,7 +27,7 @@ dependencies {
 
     // Third-party Libraries
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    implementation("com.google.guava:guava:33.7.1-jre")
+    implementation("com.google.guava:guava:33.7.2-jre")
 
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-reflect")
