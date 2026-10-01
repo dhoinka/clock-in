@@ -1,6 +1,7 @@
-node_modules
-dist
-.angular
-.git
-.gitignore
-*.md
+**
+!Dockerfile
+!nginx.conf
+!dist/
+!dist/client/
+!dist/client/browser/
+!dist/client/browser/**
