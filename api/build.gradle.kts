@@ -2,9 +2,9 @@ plugins {
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("maven-publish")
-    kotlin("jvm") version "2.4.20"
-    kotlin("plugin.spring") version "2.4.20"
-    kotlin("plugin.jpa") version "2.4.20"
+    kotlin("jvm") version "2.4.21"
+    kotlin("plugin.spring") version "2.4.21"
+    kotlin("plugin.jpa") version "2.4.21"
 }
 
 repositories {
@@ -22,7 +22,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-liquibase")
 
     // Database & Migration
-    implementation("org.postgresql:postgresql:42.7.13")
+    implementation("org.postgresql:postgresql:42.7.14")
     runtimeOnly("com.h2database:h2")
 
     // Third-party Libraries
