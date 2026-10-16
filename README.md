@@ -41,7 +41,7 @@ The current Liquibase changelog is a fresh single-user baseline. It does not mig
 
 Requirements:
 
-- Java 21
+- Java 25
 - Node.js 24 and npm
 - PostgreSQL for production-profile development; backend tests use H2
 

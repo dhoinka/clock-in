@@ -4,7 +4,7 @@ The Clock In API is a Kotlin/Spring Boot 4 service for a single global worklog. 
 
 ## Runtime stack
 
-- Java 21 toolchain
+- Java 25 toolchain
 - Kotlin 2.4
 - Spring Boot Web, Validation, Data JPA, Actuator, Jackson, and Liquibase
 - PostgreSQL 18 in production

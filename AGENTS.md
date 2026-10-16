@@ -44,7 +44,7 @@ docker compose up -d
 
 ## Backend conventions
 
-- Use Java 21 and follow the existing Kotlin and Spring patterns.
+- Use Java 25 and follow the existing Kotlin and Spring patterns.
 - The main packages remain `com.gloomstone.clockin.worklog` and `com.gloomstone.clockin.shared`.
 - The application is intentionally single-user and unauthenticated. Do not add accounts, identities, roles, tenant keys, or ownership filters to worklog resources.
 - Use the typed exceptions in `com.gloomstone.clockin.shared.exception`; do not expose internal exception details in API responses.
