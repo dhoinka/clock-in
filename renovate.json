@@ -36,6 +36,20 @@
       ]
     },
     {
+      "description": "Keep TypeScript and Vitest major updates separate until Angular supports them",
+      "matchFileNames": [
+        "web/**"
+      ],
+      "matchPackageNames": [
+        "typescript",
+        "vitest"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "groupName": null
+    },
+    {
       "groupName": "api patch dependencies",
       "description": "Group patch updates for api dependencies",
       "matchFileNames": [
