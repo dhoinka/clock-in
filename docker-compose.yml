@@ -23,7 +23,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD:-local-postgres-password-change-before-deployment}"
 
   postgres:
-    image: postgres:18
+    image: postgres:19
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
