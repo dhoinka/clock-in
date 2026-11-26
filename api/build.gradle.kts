@@ -22,7 +22,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-liquibase")
 
     // Database & Migration
-    implementation("org.postgresql:postgresql:42.7.14")
+    implementation("org.postgresql:postgresql:42.7.15")
     runtimeOnly("com.h2database:h2")
 
     // Third-party Libraries
